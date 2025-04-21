@@ -28,12 +28,15 @@ def parse[T: _typeshed.DataclassInstance](
 
         no_default = field.default is dataclasses.MISSING
 
-        if not isinstance(field.type, type | types.UnionType):
+        if type(field.type) not in (type, types.UnionType):
+            # NOTE: we do not yet support `types.GenericAlias` instances, e.g.
+            #   `list[int]`
             _fail(field)
+        field_type = typing.cast("type | types.UnionType", field.type)
 
         # If the type includes `None`, then we allow the type to
-        if isinstance(field.type, types.UnionType):
-            base_types = typing.get_args(field.type)
+        if isinstance(field_type, types.UnionType):
+            base_types = typing.get_args(field_type)
             allow_missing = any(issubclass(x, types.NoneType) for x in base_types)
             non_none_types = tuple(
                 x for x in base_types if not issubclass(x, types.NoneType)
@@ -44,7 +47,7 @@ def parse[T: _typeshed.DataclassInstance](
 
         else:
             allow_missing = False
-            base_type = field.type
+            base_type = field_type
 
         # Build up the arguments for `parser.add_argument`
         kwargs: dict[str, typing.Any] = {}
@@ -52,9 +55,9 @@ def parse[T: _typeshed.DataclassInstance](
         if not no_default:
             # We must only add an argument for the `default` if we have one to specify.
             # There isn't a sentinel value that we can use.
-            if not isinstance(field.default, field.type):
+            if not isinstance(field.default, field_type):
                 msg = (
-                    f"Invalid {field.default = }; expected an instance of {field.type}"
+                    f"Invalid {field.default = }; expected an instance of {field_type}"
                 )
                 raise ValueError(msg)
             kwargs["default"] = field.default

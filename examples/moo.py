@@ -5,7 +5,7 @@ import rich
 import argparcel
 
 
-@dataclasses.dataclass(frozen=True, slots=True)
+@dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
 class Moo:
     a: int | None
     b: float
