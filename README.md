@@ -34,8 +34,6 @@ print(
         ],
     )
 )
-print()
-rich.print(argparcel.parse(Moo, ["--help"]))
 ```
 
 ```console
@@ -53,12 +51,32 @@ Moo(
 
 usage: moo.py [-h] [--a A] --b B [--path PATH] [--c | --no-c]
               [--description DESCRIPTION]
+```
+
+```python
+class Thingy(enum.Enum):
+    a = enum.auto()
+    b = enum.auto()
+
+
+@dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
+class Moo2:
+    choice: Literal[1, 2, 3] | None
+    no_choice: Literal["foo", "bar"] = argparcel.help("baz")
+    thingy: Thingy = Thingy.a
+
+
+argparcel.parse(Moo2, ["--help"])
+```
+
+```console
+usage: moo.py [-h] [--choice {1,2,3}] --no-choice {foo,bar}
+              [--thingy {Thingy.a,Thingy.b}]
 
 options:
   -h, --help            show this help message and exit
-  --a A
-  --b B
-  --path PATH
-  --c, --no-c
-  --description DESCRIPTION
+  --choice {1,2,3}
+  --no-choice {foo,bar}
+                        baz
+  --thingy {Thingy.a,Thingy.b}
 ```

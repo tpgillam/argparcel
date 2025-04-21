@@ -53,11 +53,11 @@ class Thingy(enum.Enum):
 @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
 class Moo2:
     choice: Literal[1, 2, 3] | None
-    no_choice: Literal["foo", "bar"]
+    no_choice: Literal["foo", "bar"] = argparcel.help("baz")
     thingy: Thingy = Thingy.a
 
 
-argparcel.parse(Moo2, ["--help"])
+# argparcel.parse(Moo2, ["--help"])  # noqa: ERA001
 rich.print(argparcel.parse(Moo2, ["--choice", "2", "--no-choice", "bar"]))
 rich.print(argparcel.parse(Moo2, ["--no-choice", "foo"]))
 rich.print(argparcel.parse(Moo2, ["--no-choice", "foo", "--thingy", "b"]))
