@@ -67,6 +67,7 @@ def _add_argument(parser: argparse.ArgumentParser, field: dataclasses.Field) -> 
     if base_type is bool:
         # Represent boolean arguments as 'flags'
         parser.add_argument(name, action=argparse.BooleanOptionalAction, **kwargs)
+
     elif isinstance(base_type, typing._LiteralGenericAlias):  # pyright: ignore [reportAttributeAccessIssue]
         # Represent literal arguments with choices.
         # We enforce that they MUST all be of the same type, so that we can convert
