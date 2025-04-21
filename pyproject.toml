@@ -1,0 +1,12 @@
+[project]
+name = "argparcel"
+version = "0.1.0"
+description = "Parse command-line arguments into a dataclass"
+readme = "README.md"
+authors = [{ name = "Tom Gillam", email = "tpgillam@googlemail.com" }]
+requires-python = ">=3.13"
+dependencies = []
+
+[build-system]
+requires = ["uv_build"]
+build-backend = "uv_build"
