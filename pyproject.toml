@@ -2,6 +2,7 @@
 name = "argparcel"
 version = "0.1.0"
 description = "Parse command-line arguments into a dataclass"
+license = "MIT"
 readme = "README.md"
 authors = [{ name = "Tom Gillam", email = "tpgillam@googlemail.com" }]
 requires-python = ">=3.13"
