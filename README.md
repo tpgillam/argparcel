@@ -1,6 +1,6 @@
 # argparcel
 
-Parse command-line arguments into a dataclass.
+A minimalist library to parse command-line arguments into a dataclass.
 
 ```python
 import dataclasses
