@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 import argparse
-from collections.abc import Mapping
 import dataclasses
 import types
 import typing
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Iterable, Sequence
+    from collections.abc import Iterable, Mapping, Sequence
 
     import _typeshed
 
@@ -159,7 +158,7 @@ def _add_argument_from_field(
         )
 
 
-def help(message: str, /) -> typing.Any:
+def help(message: str, /) -> typing.Any:  # noqa: A001, ANN401
     """Create a dataclasses.Field with the argparcel help populated."""
     return dataclasses.field(metadata={HELP_KEY: message})
 
