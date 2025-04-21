@@ -9,9 +9,22 @@ if typing.TYPE_CHECKING:
     from collections.abc import Sequence
 
 
-def _fail(field: dataclasses.Field[typing.Any]) -> typing.Never:
-    msg = f"Unsupported type for '{field.name}': {field.type}"
-    raise ValueError(msg)
+def _ensure_field_type(
+    name: str, type_: object
+) -> (
+    type
+    | types.UnionType
+    | typing._UnionGenericAlias  # pyright: ignore [reportAttributeAccessIssue]
+    | typing._LiteralGenericAlias  # pyright: ignore [reportAttributeAccessIssue]
+):
+    if type(type_) not in (
+        type,
+        types.UnionType,
+        typing._UnionGenericAlias,  # pyright: ignore [reportAttributeAccessIssue]
+        typing._LiteralGenericAlias,  # pyright: ignore [reportAttributeAccessIssue]
+    ):
+        msg = f"Unsupported type for field '{name}': {type_}  (of type {type(type_)})"
+        raise ValueError(msg)
 
 
 def _add_argument(parser: argparse.ArgumentParser, field: dataclasses.Field) -> None:
@@ -19,19 +32,8 @@ def _add_argument(parser: argparse.ArgumentParser, field: dataclasses.Field) -> 
 
     no_default = field.default is dataclasses.MISSING
 
-    if type(field.type) not in (
-        type,
-        types.UnionType,
-        typing._UnionGenericAlias,  # pyright: ignore [reportAttributeAccessIssue]
-        typing._LiteralGenericAlias,  # pyright: ignore [reportAttributeAccessIssue]
-    ):
-        _fail(field)
-    field_type = typing.cast(
-        "type | types.UnionType | typing._UnionGenericAlias | typing._LiteralGenericAlias",  # pyright: ignore [reportAttributeAccessIssue]
-        field.type,
-    )
+    field_type = _ensure_field_type(field.name, field.type)
 
-    # If the type includes `None`, then we allow the type to
     if isinstance(
         field_type,
         types.UnionType | typing._UnionGenericAlias,  # pyright: ignore [reportAttributeAccessIssue]
@@ -40,14 +42,15 @@ def _add_argument(parser: argparse.ArgumentParser, field: dataclasses.Field) -> 
         allow_missing = any(x is types.NoneType for x in base_types)
         non_none_types = tuple(x for x in base_types if x is not types.NoneType)
         if len(non_none_types) != 1:
-            _fail(field)
+            msg = f"Can only support one non-None type for '{field.name}': {field.type}"
+            raise ValueError(msg)
         base_type = non_none_types[0]
 
     else:
         allow_missing = False
         base_type = field_type
 
-    # Build up the arguments for `parser.add_argument`
+    # Build up common arguments for `parser.add_argument` into this dictionary.
     kwargs: dict[str, typing.Any] = {}
 
     if not no_default:
