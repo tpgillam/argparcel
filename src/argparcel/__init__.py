@@ -73,6 +73,9 @@ def _add_argument_from_field(
     no_default = field.default is dataclasses.MISSING
     field_type = _ensure_field_type(field.name, field.type)
     help = field.metadata.get(HELP_KEY)
+    if not (help is None or isinstance(help, str)):
+        msg = f"Unsupported help metadata for field '{field.name}': {help!r}"
+        raise ValueError(msg)
 
     if isinstance(
         field_type,
