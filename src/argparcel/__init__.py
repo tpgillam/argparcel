@@ -209,9 +209,13 @@ def _add_argument_from_field(
         )
 
 
-def help(message: str, /) -> typing.Any:  # noqa: A001, ANN401
+def arg(
+    *,
+    default: object = dataclasses.MISSING,
+    help: str | None = None,  # noqa: A002
+) -> typing.Any:  # noqa: ANN401
     """Create a dataclasses.Field with the argparcel help populated."""
-    return dataclasses.field(metadata={HELP_KEY: message})
+    return dataclasses.field(default=default, metadata={HELP_KEY: help})
 
 
 def parse[T: _typeshed.DataclassInstance](

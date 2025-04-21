@@ -15,7 +15,7 @@ import argparcel
 class Moo:
     a: int | None
     b: float
-    choice: Literal[1, 2, 3] | None = argparcel.help("choose wisely")
+    choice: Literal[1, 2, 3] | None = argparcel.arg(help="choose wisely")
     path: pathlib.Path | None
     c: bool = True
     description: str | None = None
@@ -68,7 +68,7 @@ class Thingy(enum.Enum):
 @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
 class Moo2:
     choice: Literal[1, 2, 3] | None
-    no_choice: Literal["foo", "bar"] = argparcel.help("baz")
+    no_choice: Literal["foo", "bar"] = argparcel.arc(help="baz")
     thingy: Thingy = Thingy.a
 
 
