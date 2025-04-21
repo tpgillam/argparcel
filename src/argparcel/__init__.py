@@ -150,7 +150,7 @@ def _add_argument_from_field(
 
 
 def help(message: str, /) -> typing.Any:
-    """Create a dataclasses field with the argparcel help populated."""
+    """Create a dataclasses.Field with the argparcel help populated."""
     return dataclasses.field(metadata={HELP_KEY: message})
 
 
