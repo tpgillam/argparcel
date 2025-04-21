@@ -10,6 +10,13 @@ if typing.TYPE_CHECKING:
     from collections.abc import Iterable
 
 
+__all__ = [
+    "HELP_KEY",
+    "help",
+    "parse",
+]
+
+
 HELP_KEY = "help"
 """A key to use in the 'metadata' for a dataclasses field for argparcel help."""
 
