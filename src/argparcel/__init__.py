@@ -6,8 +6,12 @@ import typing
 
 if typing.TYPE_CHECKING:
     import _typeshed
-    from collections.abc import Mapping, Sequence
+    from collections.abc import Sequence
     from collections.abc import Iterable
+
+
+HELP_KEY = "help"
+"""A key to use in the 'metadata' for a dataclasses field for argparcel help."""
 
 
 def _ensure_field_type(
@@ -26,6 +30,7 @@ def _ensure_field_type(
     ):
         msg = f"Unsupported type for field '{name}': {type_}  (of type {type(type_)})"
         raise ValueError(msg)
+    return type_
 
 
 class _Unspecified:
@@ -62,13 +67,12 @@ def _add_argument(
 
 
 def _add_argument_from_field(
-    parser: argparse.ArgumentParser, field: dataclasses.Field, help: str | None
+    parser: argparse.ArgumentParser, field: dataclasses.Field
 ) -> None:
     name = f"--{field.name.replace('_', '-')}"
-
     no_default = field.default is dataclasses.MISSING
-
     field_type = _ensure_field_type(field.name, field.type)
+    help = field.metadata.get(HELP_KEY)
 
     if isinstance(
         field_type,
@@ -145,12 +149,16 @@ def _add_argument_from_field(
         )
 
 
+def help(message: str, /) -> typing.Any:
+    """Create a dataclasses field with the argparcel help populated."""
+    return dataclasses.field(metadata={HELP_KEY: message})
+
+
 def parse[T: _typeshed.DataclassInstance](
     cls: type[T],
     command_line: Sequence[str] | None = None,
     *,
     exit_on_error: bool = True,
-    help: Mapping[dataclasses.Field, str] | None = None,
 ) -> T:
     """Parse arguments into an instance of `cls`."""
     parser = argparse.ArgumentParser(exit_on_error=exit_on_error)

@@ -11,12 +11,14 @@ import argparcel
 class Moo:
     a: int | None
     b: float
-    choice: Literal[1, 2, 3] | None
+    choice: Literal[1, 2, 3] | None = argparcel.help("choose wisely")
     path: pathlib.Path | None
     c: bool = True
     description: str | None = None
 
 
+argparcel.parse(Moo, ["--help"])
+fdfs
 rich.print(argparcel.parse(Moo, ["--a", "2", "--b", "3.2", "--choice", "1"]))
 rich.print(argparcel.parse(Moo, ["--a", "2", "--b", "3.2", "--no-c", "--choice", "3"]))
 rich.print(argparcel.parse(Moo, ["--b", "4", "--c"]))
