@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+from collections.abc import Mapping
 import dataclasses
 import types
 import typing
@@ -63,7 +64,7 @@ def _add_argument(
     if choices is not _UNSPECIFIED:
         kwargs["choices"] = choices
     if type_ is not _UNSPECIFIED:
-        kwargs["type"] = type
+        kwargs["type"] = type_
     if action is not _UNSPECIFIED:
         kwargs["action"] = action
 
@@ -71,11 +72,13 @@ def _add_argument(
 
 
 def _add_argument_from_field(
-    parser: argparse.ArgumentParser, field: dataclasses.Field
+    parser: argparse.ArgumentParser,
+    field: dataclasses.Field,
+    name_to_type: Mapping[str, object],
 ) -> None:
     name = f"--{field.name.replace('_', '-')}"
     no_default = field.default is dataclasses.MISSING
-    field_type = _ensure_field_type(field.name, field.type)
+    field_type = _ensure_field_type(field.name, name_to_type[field.name])
     help_ = field.metadata.get(HELP_KEY)
     if not (help_ is None or isinstance(help_, str)):
         msg = f"Unsupported help metadata for field '{field.name}': {help_!r}"
@@ -165,17 +168,15 @@ def parse[T: _typeshed.DataclassInstance](
     cls: type[T],
     command_line: Sequence[str] | None = None,
     *,
-    exit_on_error: bool = True,
+    exit_on_error: bool = False,
 ) -> T:
     """Parse arguments into an instance of `cls`."""
     parser = argparse.ArgumentParser(exit_on_error=exit_on_error)
 
-    moo = typing.get_type_hints(cls)
-    import rich
-
-    rich.print(moo)
-    fdsfds
+    # If 'future annotations' are in use, `Field.type` may be a string. If we use
+    # `get_type_hints`, then these will get resolved into the actual runtime types.
+    name_to_type = typing.get_type_hints(cls)
     for field in dataclasses.fields(cls):
-        _add_argument_from_field(parser, field)
+        _add_argument_from_field(parser, field, name_to_type)
 
     return cls(**parser.parse_args(command_line).__dict__)
