@@ -12,10 +12,10 @@ if typing.TYPE_CHECKING:
     import _typeshed
 
 
-__all__ = ["HELP_KEY", "help", "parse"]
+__all__ = ["arg", "parse"]
 
 
-HELP_KEY = "help"
+_HELP_KEY = "help"
 """A key to use in the 'metadata' for a dataclasses field for argparcel help."""
 
 
@@ -122,7 +122,7 @@ def _add_argument_from_field(
     name = f"--{field.name.replace('_', '-')}"
     no_default = field.default is dataclasses.MISSING
     field_type = _ensure_field_type(field.name, name_to_type[field.name])
-    help_ = field.metadata.get(HELP_KEY)
+    help_ = field.metadata.get(_HELP_KEY)
     if not (help_ is None or isinstance(help_, str)):
         msg = f"Unsupported help metadata for field '{field.name}': {help_!r}"
         raise ValueError(msg)
@@ -215,7 +215,7 @@ def arg(
     help: str | None = None,  # noqa: A002
 ) -> typing.Any:  # noqa: ANN401
     """Create a dataclasses.Field with the argparcel help populated."""
-    return dataclasses.field(default=default, metadata={HELP_KEY: help})
+    return dataclasses.field(default=default, metadata={_HELP_KEY: help})
 
 
 def parse[T: _typeshed.DataclassInstance](
