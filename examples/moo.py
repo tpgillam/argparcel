@@ -52,5 +52,3 @@ try:
     rich.print(argparcel.parse(Moo2, [], exit_on_error=False))
 except argparse.ArgumentError:
     pass
-
-
