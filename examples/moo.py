@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 import contextlib
 import dataclasses
-import pathlib  # noqa: TC003
+import pathlib  # noqa: TC003 We need this at runtime for parsing
 from typing import Literal
 
 import rich
