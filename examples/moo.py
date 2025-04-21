@@ -3,14 +3,12 @@ from __future__ import annotations
 import argparse
 import contextlib
 import dataclasses
-from typing import TYPE_CHECKING, Literal
+import pathlib  # noqa: TC003
+from typing import Literal
 
 import rich
 
 import argparcel
-
-if TYPE_CHECKING:
-    import pathlib
 
 
 @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)

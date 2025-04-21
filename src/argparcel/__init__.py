@@ -29,8 +29,8 @@ def _ensure_field_type(
     if type(type_) not in (
         type,
         types.UnionType,
-        typing._UnionGenericAlias,  # pyright: ignore [reportAttributeAccessIssue]
-        typing._LiteralGenericAlias,  # pyright: ignore [reportAttributeAccessIssue]
+        typing._UnionGenericAlias,  # pyright: ignore [reportAttributeAccessIssue]  # noqa: SLF001
+        typing._LiteralGenericAlias,  # pyright: ignore [reportAttributeAccessIssue]  # noqa: SLF001
     ):
         msg = f"Unsupported type for field '{name}': {type_}  (of type {type(type_)})"
         raise ValueError(msg)
@@ -48,7 +48,7 @@ def _add_argument(
     parser: argparse.ArgumentParser,
     *,
     name: str,
-    help: str | None,
+    help_: str | None,
     required: bool,
     default: object,
     choices: Iterable | _Unspecified = _UNSPECIFIED,
@@ -67,7 +67,7 @@ def _add_argument(
     if action is not _UNSPECIFIED:
         kwargs["action"] = action
 
-    return parser.add_argument(name, help=help, required=required, **kwargs)
+    return parser.add_argument(name, help=help_, required=required, **kwargs)
 
 
 def _add_argument_from_field(
@@ -76,14 +76,14 @@ def _add_argument_from_field(
     name = f"--{field.name.replace('_', '-')}"
     no_default = field.default is dataclasses.MISSING
     field_type = _ensure_field_type(field.name, field.type)
-    help = field.metadata.get(HELP_KEY)
-    if not (help is None or isinstance(help, str)):
-        msg = f"Unsupported help metadata for field '{field.name}': {help!r}"
+    help_ = field.metadata.get(HELP_KEY)
+    if not (help_ is None or isinstance(help_, str)):
+        msg = f"Unsupported help metadata for field '{field.name}': {help_!r}"
         raise ValueError(msg)
 
     if isinstance(
         field_type,
-        types.UnionType | typing._UnionGenericAlias,  # pyright: ignore [reportAttributeAccessIssue]
+        types.UnionType | typing._UnionGenericAlias,  # pyright: ignore [reportAttributeAccessIssue]  # noqa: SLF001
     ):
         base_types = typing.get_args(field_type)
         allow_missing = any(x is types.NoneType for x in base_types)
@@ -116,12 +116,12 @@ def _add_argument_from_field(
             parser=parser,
             name=name,
             action=argparse.BooleanOptionalAction,
-            help=help,
+            help_=help_,
             required=required,
             default=default,
         )
 
-    elif isinstance(base_type, typing._LiteralGenericAlias):  # pyright: ignore [reportAttributeAccessIssue]
+    elif isinstance(base_type, typing._LiteralGenericAlias):  # pyright: ignore [reportAttributeAccessIssue]  # noqa: SLF001
         # Represent literal arguments with choices.
         # We enforce that they MUST all be of the same type, so that we can convert
         # them simply and unambiguously (e.g. `Literal[42, "42"]` could cause
@@ -140,7 +140,7 @@ def _add_argument_from_field(
             name=name,
             type_=type_,
             choices=choices,
-            help=help,
+            help_=help_,
             required=required,
             default=default,
         )
@@ -150,7 +150,7 @@ def _add_argument_from_field(
             parser,
             name=name,
             type_=base_type,
-            help=help,
+            help_=help_,
             required=required,
             default=default,
         )
@@ -170,6 +170,11 @@ def parse[T: _typeshed.DataclassInstance](
     """Parse arguments into an instance of `cls`."""
     parser = argparse.ArgumentParser(exit_on_error=exit_on_error)
 
+    moo = typing.get_type_hints(cls)
+    import rich
+
+    rich.print(moo)
+    fdsfds
     for field in dataclasses.fields(cls):
         _add_argument_from_field(parser, field)
 
