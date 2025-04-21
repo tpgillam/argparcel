@@ -6,7 +6,8 @@ import typing
 
 if typing.TYPE_CHECKING:
     import _typeshed
-    from collections.abc import Sequence
+    from collections.abc import Mapping, Sequence
+    from collections.abc import Iterable
 
 
 def _ensure_field_type(
@@ -27,7 +28,42 @@ def _ensure_field_type(
         raise ValueError(msg)
 
 
-def _add_argument(parser: argparse.ArgumentParser, field: dataclasses.Field) -> None:
+class _Unspecified:
+    pass
+
+
+_UNSPECIFIED = _Unspecified()
+
+
+def _add_argument(
+    parser: argparse.ArgumentParser,
+    *,
+    name: str,
+    help: str | None,
+    required: bool,
+    default: object,
+    choices: Iterable | _Unspecified = _UNSPECIFIED,
+    type_: object = _UNSPECIFIED,
+    action: type[argparse.Action] | _Unspecified = _UNSPECIFIED,
+) -> argparse.Action:
+    # Build up common arguments for `parser.add_argument` into this dictionary. This is
+    # the easiest way for us to avoid passing in arguments that should be unspecified.
+    kwargs: dict[str, typing.Any] = {}
+    if default is not _UNSPECIFIED:
+        kwargs["default"] = default
+    if choices is not _UNSPECIFIED:
+        kwargs["choices"] = choices
+    if type_ is not _UNSPECIFIED:
+        kwargs["type"] = type
+    if action is not _UNSPECIFIED:
+        kwargs["action"] = action
+
+    return parser.add_argument(name, help=help, required=required, **kwargs)
+
+
+def _add_argument_from_field(
+    parser: argparse.ArgumentParser, field: dataclasses.Field, help: str | None
+) -> None:
     name = f"--{field.name.replace('_', '-')}"
 
     no_default = field.default is dataclasses.MISSING
@@ -50,23 +86,29 @@ def _add_argument(parser: argparse.ArgumentParser, field: dataclasses.Field) -> 
         allow_missing = False
         base_type = field_type
 
-    # Build up common arguments for `parser.add_argument` into this dictionary.
-    kwargs: dict[str, typing.Any] = {}
-
-    if not no_default:
+    if no_default:
+        default = _UNSPECIFIED
+    else:
         # We must only add an argument for the `default` if we have one to specify.
         # There isn't a sentinel value that we can use.
         if not isinstance(field.default, field_type):
             msg = f"Invalid {field.default = }; expected an instance of {field_type}"
             raise ValueError(msg)
-        kwargs["default"] = field.default
+        default = field.default
 
     # An argument is 'required' if the user MUST specify it on the command line.
-    kwargs["required"] = no_default and (not allow_missing)
+    required = no_default and (not allow_missing)
 
     if base_type is bool:
         # Represent boolean arguments as 'flags'
-        parser.add_argument(name, action=argparse.BooleanOptionalAction, **kwargs)
+        _add_argument(
+            parser=parser,
+            name=name,
+            action=argparse.BooleanOptionalAction,
+            help=help,
+            required=required,
+            default=default,
+        )
 
     elif isinstance(base_type, typing._LiteralGenericAlias):  # pyright: ignore [reportAttributeAccessIssue]
         # Represent literal arguments with choices.
@@ -82,10 +124,25 @@ def _add_argument(parser: argparse.ArgumentParser, field: dataclasses.Field) -> 
             )
             raise ValueError(msg)
         (type_,) = choice_types
-        parser.add_argument(name, type=type_, choices=choices, **kwargs)
+        _add_argument(
+            parser,
+            name=name,
+            type_=type_,
+            choices=choices,
+            help=help,
+            required=required,
+            default=default,
+        )
 
     else:
-        parser.add_argument(name, type=base_type, **kwargs)  # pyright: ignore [reportArgumentType]
+        _add_argument(
+            parser,
+            name=name,
+            type_=base_type,
+            help=help,
+            required=required,
+            default=default,
+        )
 
 
 def parse[T: _typeshed.DataclassInstance](
@@ -93,11 +150,12 @@ def parse[T: _typeshed.DataclassInstance](
     command_line: Sequence[str] | None = None,
     *,
     exit_on_error: bool = True,
+    help: Mapping[dataclasses.Field, str] | None = None,
 ) -> T:
     """Parse arguments into an instance of `cls`."""
     parser = argparse.ArgumentParser(exit_on_error=exit_on_error)
 
     for field in dataclasses.fields(cls):
-        _add_argument(parser, field)
+        _add_argument_from_field(parser, field)
 
     return cls(**parser.parse_args(command_line).__dict__)
