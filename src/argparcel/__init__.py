@@ -181,11 +181,16 @@ def _add_argument_from_field(
         )
 
     elif isinstance(base_type, enum.EnumType):
+        # TODO: This is slightly inconsistent.
+        #   The help description lists the choices as e.g. `EnumName.a, EnumName.b`, but
+        #   the users should just pass `a` and `b`. But if we change `choices` to be a
+        #   sequence of strings, then the help becomes correct, but the parsing is then
+        #   broken.
         _add_argument_choices(
             parser,
             name=name,
             type_=base_type.__getitem__,  # Look up the enum element by name.
-            choices=tuple(base_type.__members__),  # Sequence of element names.
+            choices=tuple(base_type),  # Sequence of elements.
             help_=help_,
             required=required,
             default=default,
