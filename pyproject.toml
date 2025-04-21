@@ -14,3 +14,55 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = ["pyright==1.1.399", "rich>=14.0.0", "ruff==0.11.6"]
+
+[tool.ruff]
+output-format = "concise"
+
+[tool.ruff.format]
+docstring-code-format = true
+skip-magic-trailing-comma = true
+# Only allow `\n` line-endings (unix-style)
+line-ending = "lf"
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    # flake8-commas
+    "COM812", # we are warned that this conflicts with the formatter
+
+    # flake8-fixme
+    "FIX", # We don't mind having fix-mes in our code
+
+    # flake8-todos
+    "TD001", # Invalid to-do tag
+    "TD002", # Missing author
+    "TD003", # Missing issue link
+
+    # pydocstyle
+    "D100", # module docstrings (in every file)
+    "D101", # docstring for every public class
+    "D102", # docstring for every public method
+    "D103", # docstring for every public function
+    "D104", # package docstrings (in __init__.py)
+    "D105", # docstring for every magic method
+    "D107", # docstring required for __init__ method
+    "D401", # first line of docstring must be imperative
+
+    # flake8-bandit
+    "S101", # this bans use of `assert`. We use it for sanity checking & tests
+
+    # Pylint
+    "PLR2004", # "magic value" suppression is a bit too eager, sadly.
+    "PLR0913", # We allow many keyword-only arguments.
+]
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.isort]
+known-first-party = ["bream"]
+required-imports = ["from __future__ import annotations"]
+split-on-trailing-comma = false

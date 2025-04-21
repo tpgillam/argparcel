@@ -1,20 +1,17 @@
 from __future__ import annotations
+
 import argparse
 import dataclasses
 import types
 import typing
 
 if typing.TYPE_CHECKING:
+    from collections.abc import Iterable, Sequence
+
     import _typeshed
-    from collections.abc import Sequence
-    from collections.abc import Iterable
 
 
-__all__ = [
-    "HELP_KEY",
-    "help",
-    "parse",
-]
+__all__ = ["HELP_KEY", "help", "parse"]
 
 
 HELP_KEY = "help"

@@ -1,10 +1,16 @@
+from __future__ import annotations
+
 import argparse
+import contextlib
 import dataclasses
-import pathlib
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
+
 import rich
 
 import argparcel
+
+if TYPE_CHECKING:
+    import pathlib
 
 
 @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
@@ -48,7 +54,5 @@ class Moo2:
 
 rich.print(argparcel.parse(Moo2, ["--choice", "2", "--no-choice", "bar"]))
 rich.print(argparcel.parse(Moo2, ["--no-choice", "foo"]))
-try:
+with contextlib.suppress(argparse.ArgumentError):
     rich.print(argparcel.parse(Moo2, [], exit_on_error=False))
-except argparse.ArgumentError:
-    pass
