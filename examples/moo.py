@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import contextlib
 import dataclasses
+import enum
 import pathlib  # noqa: TC003 We need this at runtime for parsing
 from typing import Literal
 
@@ -44,13 +45,21 @@ print()
 print()
 
 
+class Thingy(enum.Enum):
+    a = enum.auto()
+    b = enum.auto()
+
+
 @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
 class Moo2:
     choice: Literal[1, 2, 3] | None
     no_choice: Literal["foo", "bar"]
+    thingy: Thingy = Thingy.a
 
 
+argparcel.parse(Moo2, ["--help"])
 rich.print(argparcel.parse(Moo2, ["--choice", "2", "--no-choice", "bar"]))
 rich.print(argparcel.parse(Moo2, ["--no-choice", "foo"]))
+rich.print(argparcel.parse(Moo2, ["--no-choice", "foo", "--thingy", "b"]))
 with contextlib.suppress(argparse.ArgumentError):
     rich.print(argparcel.parse(Moo2, [], exit_on_error=False))

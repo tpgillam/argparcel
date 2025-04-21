@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import argparse
 import dataclasses
+import enum
 import types
 import typing
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Iterable, Mapping, Sequence
+    from collections.abc import Mapping, Sequence
 
     import _typeshed
 
@@ -22,12 +23,14 @@ def _ensure_field_type(
     name: str, type_: object
 ) -> (
     type
+    | enum.EnumType
     | types.UnionType
     | typing._UnionGenericAlias  # pyright: ignore [reportAttributeAccessIssue]
     | typing._LiteralGenericAlias  # pyright: ignore [reportAttributeAccessIssue]
 ):
     if type(type_) not in (
         type,
+        enum.EnumType,
         types.UnionType,
         typing._UnionGenericAlias,  # pyright: ignore [reportAttributeAccessIssue]  # noqa: SLF001
         typing._LiteralGenericAlias,  # pyright: ignore [reportAttributeAccessIssue]  # noqa: SLF001
@@ -51,7 +54,7 @@ def _add_argument(
     help_: str | None,
     required: bool,
     default: object,
-    choices: Iterable | _Unspecified = _UNSPECIFIED,
+    choices: Sequence | _Unspecified = _UNSPECIFIED,
     type_: object = _UNSPECIFIED,
     action: type[argparse.Action] | _Unspecified = _UNSPECIFIED,
 ) -> argparse.Action:
@@ -68,6 +71,47 @@ def _add_argument(
         kwargs["action"] = action
 
     return parser.add_argument(name, help=help_, required=required, **kwargs)
+
+
+def _add_argument_choices[T](
+    parser: argparse.ArgumentParser,
+    *,
+    name: str,
+    help_: str | None,
+    required: bool,
+    default: T,
+    choices: Sequence[T],
+    field_type: enum.EnumType | typing._LiteralGenericAlias,  # pyright: ignore [reportAttributeAccessIssue]
+    field_name: str,
+    type_: object = _UNSPECIFIED,
+) -> argparse.Action:
+    if len(choices) == 0:
+        msg = f"Need at least one choice for field '{field_name}' of type {field_type}"
+        raise ValueError(msg)
+
+    if type_ is _UNSPECIFIED:
+        choice_types = {type(x) for x in choices}
+        # We enforce that all choices MUST all be of the same type, so that we can
+        # convert them simply and unambiguously (e.g. `Literal[42, "42"]` could cause
+        # problems).
+        if len(choice_types) != 1:
+            msg = (
+                "Need exactly one type of choice. "
+                f"Found {choice_types} for {field_type}, for field '{field_name}'"
+            )
+            raise ValueError(msg)
+
+        (type_,) = choice_types
+
+    return _add_argument(
+        parser,
+        name=name,
+        type_=type_,
+        choices=choices,
+        help_=help_,
+        required=required,
+        default=default,
+    )
 
 
 def _add_argument_from_field(
@@ -125,26 +169,28 @@ def _add_argument_from_field(
 
     elif isinstance(base_type, typing._LiteralGenericAlias):  # pyright: ignore [reportAttributeAccessIssue]  # noqa: SLF001
         # Represent literal arguments with choices.
-        # We enforce that they MUST all be of the same type, so that we can convert
-        # them simply and unambiguously (e.g. `Literal[42, "42"]` could cause
-        # problems).
-        choices = typing.get_args(base_type)
-        choice_types = {type(x) for x in choices}
-        if len(choice_types) != 1:
-            msg = (
-                "Need exactly one type of choice. "
-                f"Found {choice_types} for {field_type}, for field '{field.name}'"
-            )
-            raise ValueError(msg)
-        (type_,) = choice_types
-        _add_argument(
+        _add_argument_choices(
             parser,
             name=name,
-            type_=type_,
-            choices=choices,
+            choices=typing.get_args(base_type),
             help_=help_,
             required=required,
             default=default,
+            field_type=field.type,
+            field_name=field.name,
+        )
+
+    elif isinstance(base_type, enum.EnumType):
+        _add_argument_choices(
+            parser,
+            name=name,
+            type_=base_type.__getitem__,  # Look up the enum element by name.
+            choices=tuple(base_type.__members__),  # Sequence of element names.
+            help_=help_,
+            required=required,
+            default=default,
+            field_type=field.type,
+            field_name=field.name,
         )
 
     else:
