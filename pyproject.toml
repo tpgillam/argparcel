@@ -13,7 +13,13 @@ requires = ["uv_build"]
 build-backend = "uv_build"
 
 [dependency-groups]
-dev = ["pyright==1.1.399", "rich>=14.0.0", "ruff==0.11.6"]
+dev = ["pyright==1.1.399", "pytest>=8.3.5", "rich>=14.0.0", "ruff==0.11.6"]
+
+
+[tool.pytest.ini_options]
+addopts = "--tb=short --capture=no"
+testpaths = ["tests"]
+
 
 [tool.ruff]
 output-format = "concise"
