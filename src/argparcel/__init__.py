@@ -138,20 +138,11 @@ def _add_argument_from_field(
             msg = f"Can only support one non-None type for '{field.name}': {field.type}"
             raise ValueError(msg)
         base_type = non_none_types[0]
-
     else:
         allow_missing = False
         base_type = field_type
 
-    if no_default:
-        default = _UNSPECIFIED
-    else:
-        # We must only add an argument for the `default` if we have one to specify.
-        # There isn't a sentinel value that we can use.
-        if not isinstance(field.default, field_type):
-            msg = f"Invalid {field.default = }; expected an instance of {field_type}"
-            raise ValueError(msg)
-        default = field.default
+    default = _UNSPECIFIED if no_default else field.default
 
     # An argument is 'required' if the user MUST specify it on the command line.
     required = no_default and (not allow_missing)
