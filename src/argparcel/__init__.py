@@ -214,7 +214,7 @@ def arg(
     default: object = dataclasses.MISSING,
     help: str | None = None,  # noqa: A002
 ) -> typing.Any:  # noqa: ANN401
-    """Create a dataclasses.Field with the argparcel help populated."""
+    """Create a dataclasses.Field in a way that argparcel understands."""
     return dataclasses.field(default=default, metadata={_HELP_KEY: help})
 
 
