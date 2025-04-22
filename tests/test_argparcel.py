@@ -49,3 +49,22 @@ def test_happy_paths() -> None:
         c=True,
         description="moo moo",
     )
+
+
+@dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
+class MooLiteral:
+    choice: Literal[1, 2, 3] | None
+    no_choice: Literal["foo", "bar"]
+    defaulted_choice: Literal["a", "b", "c"] = "c"
+
+
+def test_literals() -> None:
+    assert argparcel.parse(MooLiteral, ["--no-choice", "foo"]) == MooLiteral(
+        choice=None, no_choice="foo", defaulted_choice="c"
+    )
+    assert argparcel.parse(
+        MooLiteral, ["--choice", "1", "--no-choice", "foo"]
+    ) == MooLiteral(choice=1, no_choice="foo", defaulted_choice="c")
+    assert argparcel.parse(
+        MooLiteral, ["--choice", "1", "--no-choice", "foo", "--defaulted-choice", "a"]
+    ) == MooLiteral(choice=1, no_choice="foo", defaulted_choice="a")
