@@ -18,10 +18,10 @@ if typing.TYPE_CHECKING:
 
 
 def get_field_docstrings(cls: type[_typeshed.DataclassInstance]) -> dict[str, str]:
-    """Extracts 'docstrings' for all fields in a dataclass, if present.
+    """Extracts any 'field docstrings' present in `cls`.
 
-    If a 'docstring' is not found for a given field, it will not be included in the
-    output.
+    Returns a mapping from field name -> docstring, only for fields with which strings
+    can be associated.
     """
     # Obtaining the source code might fail with an exception; we let that propagate up
     # to the user.
