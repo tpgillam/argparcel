@@ -10,7 +10,6 @@ A minimalist library to parse command-line arguments into a dataclass.
 ## Example usage
 ```python
 import dataclasses
-from typing import Literal
 
 import argparcel
 
@@ -19,9 +18,13 @@ import argparcel
 class _Args:
     a: int
     b: float
-    c: Literal[1, 2, 3] = argparcel.arg(help="choose wisely")
-    d: bool = True
-    e: str | None = None
+
+    # A `bool` argument will create a linked pair of flags `--c` and `--no-c`.
+    c: bool
+
+    # A command line argument will be optional if and only if a default value is
+    # provided in the corresponding dataclass field.
+    d: str | None = None
 
 
 if __name__ == "__main__":
@@ -29,51 +32,75 @@ if __name__ == "__main__":
 ```
 
 ```console
-$ python examples/example_0.py --help
-usage: example_0.py [-h] --a A --b B --c {1,2,3} [--d | --no-d] [--e E]
+$ uv run examples/example_0.py --help
+usage: example_0.py [-h] --a A --b B --c | --no-c [--d D]
 
 options:
   -h, --help   show this help message and exit
   --a A
   --b B
-  --c {1,2,3}  choose wisely
-  --d, --no-d
-  --e E
+  --c, --no-c
+  --d D
 
-$ python examples/example_0.py --a 2 --b 3.2 --c 1
-_Args(a=2, b=3.2, c=1, d=True, e=None)
+$ uv run examples/example_0.py --a 2 --b 3.2 --c
+_Args(a=2, b=3.2, c=True, d=None)
 
-$ python examples/example_0.py --a 2 --b 3.2 --c 1 --no-d
-_Args(a=2, b=3.2, c=1, d=False, e=None)
+$ uv run examples/example_0.py --a 2 --b 3.2 --no-c
+_Args(a=2, b=3.2, c=False, d=None)
 
-$ python examples/example_0.py --a 2 --b 3.2 --c 1 --no-d  --e moo
-_Args(a=2, b=3.2, c=1, d=False, e='moo')
+$ uv run examples/example_0.py --a 2 --b 3.2 --no-c  --d moo
+_Args(a=2, b=3.2, c=False, d='moo')
 ```
 
-Another example:
+We also support:
+- `Literal` and `Enum`s forcing specific choices
+- conversion to types whose `__init__` accepts a string, e.g. `pathlib.Path`
+- 'help' can be provided too
+
 ```python
-class Thingy(enum.Enum):
-    a = enum.auto()
-    b = enum.auto()
+import dataclasses
+import enum
+import pathlib 
+from typing import Literal
+
+import argparcel
+
+
+class Bird(enum.Enum):
+    puffin = enum.auto()
+    lark = enum.auto()
 
 
 @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
-class Moo2:
-    choice: Literal[1, 2, 3] | None = None
-    no_choice: Literal["foo", "bar"] = argparcel.arg(help="baz")
-    thingy: Thingy = Thingy.a
+class _Args:
+    # Using a `Literal` will force a choice between 1, 2, or 3.
+    a: Literal[1, 2, 3]
+
+    # An enum will force a choice between the names of the enum elements.
+    b: Bird = Bird.puffin
+
+    # A `Path` can be automatically converted from a string. Here we also specify a
+    # 'help' message along with a default by using `argparcel.arg`
+    c: pathlib.Path | None = argparcel.arg(help="specify a path", default=None)  # noqa: RUF009
 
 
-argparcel.parse(Moo2, ["--help"])
+if __name__ == "__main__":
+    print(argparcel.parse(_Args))
 ```
 
 ```console
-usage: moo.py [-h] [--choice {1,2,3}] --no-choice {foo,bar} [--thingy {a,b}]
+$ uv run examples/example_1.py --help
+usage: example_1.py [-h] --a {1,2,3} [--b {puffin,lark}] [--c C]
 
 options:
-  -h, --help            show this help message and exit
-  --choice {1,2,3}
-  --no-choice {foo,bar}
-                        baz
-  --thingy {a,b}
+  -h, --help         show this help message and exit
+  --a {1,2,3}
+  --b {puffin,lark}
+  --c C              specify a path
+
+$ uv run examples/example_1.py --a 2
+_Args(a=2, b=<Bird.puffin: 1>, c=None)
+
+$ uv run examples/example_1.py --a 2 --b lark --c /somewhere/to/go
+_Args(a=2, b=<Bird.lark: 2>, c=PosixPath('/somewhere/to/go'))
 ```
