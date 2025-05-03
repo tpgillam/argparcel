@@ -1,13 +1,13 @@
 [project]
 name = "argparcel"
-version = "0.0.1"
+version = "0.0.2"
 description = "Parse command-line arguments into a dataclass"
 license = "MIT"
 readme = "README.md"
 authors = [{ name = "Tom Gillam", email = "tpgillam@googlemail.com" }]
 requires-python = ">=3.12"
 classifiers = [
-    "Development Status :: 2 - Pre-Alpha",
+    "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
     "Natural Language :: English",
     "Programming Language :: Python :: 3",
