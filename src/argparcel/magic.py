@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+import dataclasses
 import importlib
 import inspect
 import itertools
@@ -80,9 +81,13 @@ def _is_type_checking_block(node: ast.AST) -> typing.TypeGuard[ast.If]:
 
 
 def _module_globals_including_type_checking(
-    module: types.ModuleType,
+    module: types.ModuleType, *, allowed_extra_names: frozenset[str]
 ) -> dict[str, typing.Any]:
-    """Get the global namespace for `module`... including imports in TYPE_CHECKING."""
+    """Get the global namespace for `module`... including imports in TYPE_CHECKING.
+
+    Of any imports identified in TYPE_CHECKING blocks, only names that appear in
+    `allowed_extra_names` will actually be imported.
+    """
     source = inspect.getsource(module)
     globalns = dict(vars(module))
 
@@ -95,6 +100,8 @@ def _module_globals_including_type_checking(
         for statement in node.body:
             if isinstance(statement, ast.Import):
                 for alias in statement.names:
+                    if alias.name not in allowed_extra_names:
+                        continue
                     mod = importlib.import_module(alias.name)
                     asname = alias.asname or alias.name
                     globalns[asname] = mod
@@ -104,11 +111,44 @@ def _module_globals_including_type_checking(
                 assert modname is not None
                 mod = importlib.import_module(modname)
                 for alias in statement.names:
+                    if alias.name not in allowed_extra_names:
+                        continue
                     name = alias.name
                     asname = alias.asname or name
                     globalns[asname] = getattr(mod, name)
 
     return globalns
+
+
+def _names_used_in_annotation(cls: type[_typeshed.DataclassInstance]) -> frozenset[str]:
+    """Extract names used in field annotations of `cls`."""
+    names: set[str] = set()
+
+    for field in dataclasses.fields(cls):
+        if not isinstance(field.type, str):
+            continue  # Already resolved — skip
+
+        # Our `field.type` will be an expression, maybe something like:
+        #   Path
+        #   pathlib.Path
+        #   pathlib.Path | None
+        expression = ast.parse(field.type, mode="eval")
+
+        for node in ast.walk(expression):
+            # `None` will get parsed to an ast.Constant, so we don't need to handle that
+            # case here.
+            if isinstance(node, ast.Name):
+                # e.g. `Path`
+                names.add(node.id)
+            elif isinstance(node, ast.Attribute):
+                # e.g. `pathlib.Path`
+                root = node
+                while isinstance(root, ast.Attribute):
+                    root = root.value
+                if isinstance(root, ast.Name):
+                    names.add(root.id)
+
+    return frozenset(names)
 
 
 def get_type_hints(cls: type[_typeshed.DataclassInstance]) -> dict[str, typing.Any]:
@@ -120,5 +160,8 @@ def get_type_hints(cls: type[_typeshed.DataclassInstance]) -> dict[str, typing.A
     module_name = cls.__module__
     module = importlib.import_module(module_name)
     return typing.get_type_hints(
-        cls, globalns=_module_globals_including_type_checking(module)
+        cls,
+        globalns=_module_globals_including_type_checking(
+            module, allowed_extra_names=_names_used_in_annotation(cls)
+        ),
     )
