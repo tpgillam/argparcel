@@ -134,11 +134,14 @@ def _add_argument_from_field(
         field_type,
         types.UnionType | typing._UnionGenericAlias,  # pyright: ignore [reportAttributeAccessIssue]  # noqa: SLF001
     ):
-        base_types = typing.get_args(field_type)
-        assert len(base_types) > 0
-        non_none_types = tuple(x for x in base_types if x is not types.NoneType)
+        non_none_types = tuple(
+            x for x in typing.get_args(field_type) if x is not types.NoneType
+        )
         if len(non_none_types) != 1:
-            msg = f"More than one non-None type given for '{field.name}'; {field.type}"
+            msg = (
+                f"Exactly one non-None type required for '{field.name}'; "
+                f"got {field.type}"
+            )
             raise ValueError(msg)
         base_type = non_none_types[0]
     else:
