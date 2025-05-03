@@ -9,6 +9,7 @@ A minimalist library to parse command-line arguments into a dataclass.
 
 ## Example usage
 ```python
+# examples/example_0.py
 import dataclasses
 
 import argparcel
@@ -58,6 +59,7 @@ We also support:
 - 'help' can be provided too
 
 ```python
+# examples/example_1.py
 import dataclasses
 import enum
 import pathlib 
