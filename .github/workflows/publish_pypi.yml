@@ -1,0 +1,53 @@
+name: Publish
+
+on:
+  push:
+    tags: ["[0-9]+.[0-9]+.[0-9]+"]
+
+
+jobs:
+  check-tag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      # Workaround; see https://github.com/astral-sh/uv/issues/6298
+      - name: Compare version to ref
+        run: |
+          VERSION=$(uv tool run --from toml-cli toml get --toml-path=pyproject.toml project.version)
+          echo "Compare ${{ github.ref }} to refs/tags/$VERSION"
+          if [[ "${{ github.ref }}" != "refs/tags/$VERSION" ]]; then
+            exit 1
+          fi
+
+  call-ci:
+    uses: ./.github/workflows/ci.yml
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: artifact-source
+          path: dist/*
+
+  upload_pypi:
+    needs: [build, call-ci, check-tag]
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      # Required for trusted publishing; see https://docs.pypi.org/trusted-publishers/using-a-publisher/
+      id-token: write  
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - uses: astral-sh/setup-uv@v5
+      - run: uv publish --trusted-publishing always -v
+
+
