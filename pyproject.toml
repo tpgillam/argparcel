@@ -86,3 +86,8 @@ split-on-trailing-comma = false
 "examples/*" = [
     "T20", # allow 'print' calls
 ]
+
+
+[tool.uv]
+python-preference = "only-managed"
+required-version = ">=0.7.2"
