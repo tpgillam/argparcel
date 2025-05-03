@@ -6,17 +6,15 @@ import enum
 import types
 import typing
 
+from argparcel.docstrings import get_field_docstrings
+
 if typing.TYPE_CHECKING:
     from collections.abc import Callable, Mapping, Sequence
 
     import _typeshed
 
 
-__all__ = ["arg", "parse"]
-
-
-_HELP_KEY = "help"
-"""A key to use in the 'metadata' for a dataclasses field for argparcel help."""
+__all__ = ["parse"]
 
 
 def _ensure_field_type(
@@ -118,6 +116,7 @@ def _add_argument_from_field(
     parser: argparse.ArgumentParser,
     field: dataclasses.Field,
     name_to_type: Mapping[str, object],
+    name_to_help: Mapping[str, str],
 ) -> Callable[[typing.Any], typing.Any] | _Unspecified:
     name = f"--{field.name.replace('_', '-')}"
 
@@ -126,7 +125,7 @@ def _add_argument_from_field(
     required = field.default is dataclasses.MISSING
 
     field_type = _ensure_field_type(field.name, name_to_type[field.name])
-    help_ = field.metadata.get(_HELP_KEY)
+    help_ = name_to_help.get(field.name)
     if not (help_ is None or isinstance(help_, str)):
         msg = f"Unsupported help metadata for field '{field.name}': {help_!r}"
         raise ValueError(msg)
@@ -221,15 +220,6 @@ def _add_argument_from_field(
     return _UNSPECIFIED
 
 
-def arg(
-    *,
-    default: object = dataclasses.MISSING,
-    help: str | None = None,  # noqa: A002
-) -> typing.Any:  # noqa: ANN401
-    """Create a dataclasses.Field in a way that argparcel understands."""
-    return dataclasses.field(default=default, metadata={_HELP_KEY: help})
-
-
 def parse[T: _typeshed.DataclassInstance](
     cls: type[T],
     command_line: Sequence[str] | None = None,
@@ -243,13 +233,16 @@ def parse[T: _typeshed.DataclassInstance](
     # `get_type_hints`, then these will get resolved into the actual runtime types.
     name_to_type = typing.get_type_hints(cls)
 
+    # Get the 'help' messages from any 'docstrings'.
+    name_to_help = get_field_docstrings(cls)
+
     # A mapping from argument name to a function that should be applied to whatever we
     # get out of argparse, to give us the value we should give to the dataclass
     # constructor.
     name_to_converter: dict[str, Callable[[typing.Any], typing.Any]] = {}
 
     for field in dataclasses.fields(cls):
-        converter = _add_argument_from_field(parser, field, name_to_type)
+        converter = _add_argument_from_field(parser, field, name_to_type, name_to_help)
         if not isinstance(converter, _Unspecified):
             name_to_converter[field.name] = converter
 
