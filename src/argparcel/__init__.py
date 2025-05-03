@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 import argparse
-from collections.abc import Callable
 import dataclasses
 import enum
 import types
 import typing
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Mapping, Sequence
+    from collections.abc import Callable, Mapping, Sequence
 
     import _typeshed
 
