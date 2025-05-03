@@ -27,7 +27,6 @@ jobs:
       - uses: astral-sh/setup-uv@v5
       - run: make lint_no_fix
       - run: make typecheck
-      - run: exit 1  # FIXME: temp test
 
   pass:
     needs: [test_on_version, lint]
