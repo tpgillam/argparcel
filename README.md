@@ -1,5 +1,10 @@
 # argparcel
 
+[![image](https://img.shields.io/pypi/v/argparcel.svg)](https://pypi.python.org/pypi/argparcel)
+[![image](https://img.shields.io/pypi/l/argparcel.svg)](https://github.com/tpgillam/argparcel/blob/main/LICENSE)
+[![image](https://img.shields.io/pypi/pyversions/argparcel.svg)](https://pypi.python.org/pypi/argparcel)
+[![Actions status](https://github.com/tpgillam/argparcel/workflows/CI/badge.svg)](https://github.com/tpgillam/argparcel/actions)
+
 A minimalist library to parse command-line arguments into a dataclass.
 
 ## Example usage
