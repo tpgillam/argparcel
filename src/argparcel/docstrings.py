@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import ast
 import inspect
+import itertools
 import typing
 
 if typing.TYPE_CHECKING:
@@ -42,29 +43,22 @@ def get_field_docstrings(cls: type[_typeshed.DataclassInstance]) -> dict[str, st
 
     result: dict[str, str] = {}
 
-    # Walk through the class body to collect field docstrings
-    i = 0
-    while i < len(class_node.body):
-        node = class_node.body[i]
-
+    # Walk through the class body to collect field docstrings. We're looking for pairs
+    # of field definition followed by a docstring.
+    for node, next_node in itertools.pairwise(class_node.body):
         if isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
             field_name = node.target.id
             docstring: str | None = None
 
             # Check if the next statement is a string literal
-            if i + 1 < len(class_node.body):
-                next_node = class_node.body[i + 1]
-                if (
-                    isinstance(next_node, ast.Expr)
-                    and isinstance(next_node.value, ast.Constant)
-                    and isinstance(next_node.value.value, str)
-                ):
-                    docstring = next_node.value.value
-                    i += 1  # Skip over the docstring node
+            if (
+                isinstance(next_node, ast.Expr)
+                and isinstance(next_node.value, ast.Constant)
+                and isinstance(next_node.value.value, str)
+            ):
+                docstring = next_node.value.value
 
             if docstring is not None:
                 result[field_name] = docstring
-
-        i += 1
 
     return result
