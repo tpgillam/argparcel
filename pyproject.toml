@@ -22,7 +22,7 @@ requires = ["uv_build"]
 build-backend = "uv_build"
 
 [dependency-groups]
-dev = ["pyright==1.1.400", "pytest>=8.3.5", "rich>=14.0.0", "ruff==0.11.8"]
+dev = ["pyright==1.1.400", "pytest>=8.3.5", "ruff==0.11.8"]
 
 
 [tool.pytest.ini_options]
