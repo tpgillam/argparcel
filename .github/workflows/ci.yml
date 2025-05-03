@@ -20,12 +20,6 @@ jobs:
           python-version: ${{ matrix.python }}
       - run: make test
 
-  test:
-    needs: [test_on_version]
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo "All tests passed"
-
   lint:
     runs-on: ubuntu-latest
     steps:
@@ -33,3 +27,17 @@ jobs:
       - uses: astral-sh/setup-uv@v5
       - run: make lint_no_fix
       - run: make typecheck
+
+  pass:
+    needs: [test_on_version, lint]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check required jobs
+        run: exit 1
+        # see https://stackoverflow.com/a/67532120/4907315
+        if: >
+          ${{
+              contains(needs.*.result, 'failure')
+            || contains(needs.*.result, 'cancelled')
+          }}
