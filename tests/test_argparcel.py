@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import contextlib
 import dataclasses
+import enum
+import io
 import pathlib
 from typing import Literal
 
@@ -69,3 +72,105 @@ def test_literals() -> None:
         MooLiteral,
         ["--optional-choice", "1", "--choice", "foo", "--defaulted-choice", "a"],
     ) == MooLiteral(optional_choice=1, choice="foo", defaulted_choice="a")
+
+
+class Thingy(enum.Enum):
+    a = enum.auto()
+    b = enum.auto()
+
+
+class ThingyStr(enum.StrEnum):
+    a = enum.auto()
+    b = enum.auto()
+
+
+class ThingyInt(enum.IntEnum):
+    a = 1
+    b = 42
+
+
+@dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
+class MooEnum:
+    x: Thingy = Thingy.a
+    y: Thingy
+    z: Thingy | None
+
+
+@dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
+class MooStrEnum:
+    x: ThingyStr = ThingyStr.a
+    y: ThingyStr
+    z: ThingyStr | None
+
+
+@dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
+class MooIntEnum:
+    x: ThingyInt = ThingyInt.a
+    y: ThingyInt
+    z: ThingyInt | None
+
+
+def test_enum_help() -> None:
+    for type_ in (MooEnum, MooStrEnum, MooIntEnum):
+        with (
+            contextlib.redirect_stdout(io.StringIO()) as f,
+            contextlib.suppress(SystemExit),
+        ):
+            argparcel.parse(type_, ["--help"])
+        help_text = f.getvalue()
+        assert (
+            """[-h] [--x {a,b}] --y {a,b} [--z {a,b}]
+
+options:
+  -h, --help  show this help message and exit
+  --x {a,b}
+  --y {a,b}
+  --z {a,b}
+"""
+            in help_text
+        )
+
+
+def test_enum() -> None:
+    assert argparcel.parse(MooEnum, ["--y", "a"]) == MooEnum(
+        x=Thingy.a, y=Thingy.a, z=None
+    )
+    assert argparcel.parse(MooEnum, ["--y", "b"]) == MooEnum(
+        x=Thingy.a, y=Thingy.b, z=None
+    )
+    assert argparcel.parse(MooEnum, ["--x", "b", "--y", "b"]) == MooEnum(
+        x=Thingy.b, y=Thingy.b, z=None
+    )
+    assert argparcel.parse(MooEnum, ["--y", "b", "--z", "b"]) == MooEnum(
+        x=Thingy.a, y=Thingy.b, z=Thingy.b
+    )
+
+
+def test_str_enum() -> None:
+    assert argparcel.parse(MooStrEnum, ["--y", "a"]) == MooStrEnum(
+        x=ThingyStr.a, y=ThingyStr.a, z=None
+    )
+    assert argparcel.parse(MooStrEnum, ["--y", "b"]) == MooStrEnum(
+        x=ThingyStr.a, y=ThingyStr.b, z=None
+    )
+    assert argparcel.parse(MooStrEnum, ["--x", "b", "--y", "b"]) == MooStrEnum(
+        x=ThingyStr.b, y=ThingyStr.b, z=None
+    )
+    assert argparcel.parse(MooStrEnum, ["--y", "b", "--z", "b"]) == MooStrEnum(
+        x=ThingyStr.a, y=ThingyStr.b, z=ThingyStr.b
+    )
+
+
+def test_int_enum() -> None:
+    assert argparcel.parse(MooIntEnum, ["--y", "a"]) == MooIntEnum(
+        x=ThingyInt.a, y=ThingyInt.a, z=None
+    )
+    assert argparcel.parse(MooIntEnum, ["--y", "b"]) == MooIntEnum(
+        x=ThingyInt.a, y=ThingyInt.b, z=None
+    )
+    assert argparcel.parse(MooIntEnum, ["--x", "b", "--y", "b"]) == MooIntEnum(
+        x=ThingyInt.b, y=ThingyInt.b, z=None
+    )
+    assert argparcel.parse(MooIntEnum, ["--y", "b", "--z", "b"]) == MooIntEnum(
+        x=ThingyInt.a, y=ThingyInt.b, z=ThingyInt.b
+    )
