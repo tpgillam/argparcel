@@ -17,7 +17,9 @@ import argparcel
 class Moo:
     a: int | None = None
     b: float
-    choice: Literal[1, 2, 3] | None = argparcel.arg(help="choose wisely", default=None)
+    choice: Literal[1, 2, 3] | None = None
+    """choose wisely"""
+
     path: pathlib.Path | None = None
     c: bool = True
     description: str | None = None

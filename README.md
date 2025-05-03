@@ -82,8 +82,9 @@ class _Args:
     b: Bird = Bird.puffin
 
     # A `Path` can be automatically converted from a string. Here we also specify a
-    # 'help' message along with a default by using `argparcel.arg`
-    c: pathlib.Path | None = argparcel.arg(help="specify a path", default=None)  # noqa: RUF009
+    # 'help' message by using a 'docstring' for the field.
+    c: pathlib.Path | None = None
+    """An important path."""
 
 
 if __name__ == "__main__":
@@ -98,7 +99,7 @@ options:
   -h, --help         show this help message and exit
   --a {1,2,3}
   --b {puffin,lark}
-  --c C              specify a path
+  --c C              An important path.
 
 $ uv run examples/example_1.py --a 2
 _Args(a=2, b=<Bird.puffin: 1>, c=None)
