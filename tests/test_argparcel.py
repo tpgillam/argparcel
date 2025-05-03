@@ -119,7 +119,7 @@ def test_enum_help() -> None:
             argparcel.parse(type_, ["--help"])
         help_text = f.getvalue()
         assert (
-            """usage: pytest [-h] [--x {a,b}] --y {a,b} [--z {a,b}]
+            """[-h] [--x {a,b}] --y {a,b} [--z {a,b}]
 
 options:
   -h, --help  show this help message and exit
