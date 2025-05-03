@@ -18,9 +18,9 @@ import argparcel
 
 @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
 class Moo:
-    a: int | None
+    a: int | None = None
     b: float
-    choice: Literal[1, 2, 3] | None = argparcel.arg(help="choose wisely")
+    choice: Literal[1, 2, 3] | None = argparcel.arg(help="choose wisely", default=None)
     path: pathlib.Path | None
     c: bool = True
     description: str | None = None
@@ -72,8 +72,8 @@ class Thingy(enum.Enum):
 
 @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
 class Moo2:
-    choice: Literal[1, 2, 3] | None
-    no_choice: Literal["foo", "bar"] = argparcel.arc(help="baz")
+    choice: Literal[1, 2, 3] | None = None
+    no_choice: Literal["foo", "bar"] = argparcel.arg(help="baz")
     thingy: Thingy = Thingy.a
 
 
@@ -81,13 +81,12 @@ argparcel.parse(Moo2, ["--help"])
 ```
 
 ```console
-usage: moo.py [-h] [--choice {1,2,3}] --no-choice {foo,bar}
-              [--thingy {Thingy.a,Thingy.b}]
+usage: moo.py [-h] [--choice {1,2,3}] --no-choice {foo,bar} [--thingy {a,b}]
 
 options:
   -h, --help            show this help message and exit
   --choice {1,2,3}
   --no-choice {foo,bar}
                         baz
-  --thingy {Thingy.a,Thingy.b}
+  --thingy {a,b}
 ```
