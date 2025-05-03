@@ -134,11 +134,14 @@ def _add_argument_from_field(
         field_type,
         types.UnionType | typing._UnionGenericAlias,  # pyright: ignore [reportAttributeAccessIssue]  # noqa: SLF001
     ):
-        base_types = typing.get_args(field_type)
-        assert len(base_types) > 0
-        non_none_types = tuple(x for x in base_types if x is not types.NoneType)
+        non_none_types = tuple(
+            x for x in typing.get_args(field_type) if x is not types.NoneType
+        )
         if len(non_none_types) != 1:
-            msg = f"More than one non-None type given for '{field.name}'; {field.type}"
+            msg = (
+                f"Exactly one non-None type required for '{field.name}'; "
+                f"got {field.type}"
+            )
             raise ValueError(msg)
         base_type = non_none_types[0]
     else:
@@ -240,7 +243,6 @@ def parse[T: _typeshed.DataclassInstance](
     # get out of argparse, to give us the value we should give to the dataclass
     # constructor.
     name_to_converter: dict[str, Callable[[typing.Any], typing.Any]] = {}
-
     for field in dataclasses.fields(cls):
         converter = _add_argument_from_field(parser, field, name_to_type, name_to_help)
         if not isinstance(converter, _Unspecified):
@@ -250,7 +252,7 @@ def parse[T: _typeshed.DataclassInstance](
     kwargs = parser.parse_args(command_line).__dict__
 
     # Now apply any conversions required before constructing the dataclass.
-    converted_kwargs: dict[str, typing.Any] = {
+    converted_kwargs = {
         k: name_to_converter[k](v) if k in name_to_converter else v
         for k, v in kwargs.items()
     }

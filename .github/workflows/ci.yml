@@ -18,6 +18,8 @@ jobs:
       - uses: astral-sh/setup-uv@v6
         with:
           python-version: ${{ matrix.python }}
+      - name: Verify uv.lock is consistent
+        run: uv sync --locked
       - run: make test
 
   lint:
