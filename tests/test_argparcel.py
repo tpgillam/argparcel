@@ -179,6 +179,15 @@ def test_int_enum() -> None:
     )
 
 
+@dataclasses.dataclass
+class ArgsRequiredFlag:
+    a: bool
+
+
 def test_missing_argument() -> None:
     with pytest.raises(argparse.ArgumentError, match="arguments are required: --b"):
         argparcel.parse(Moo, [], exit_on_error=False)
+    with pytest.raises(
+        argparse.ArgumentError, match="arguments are required: --a/--no-a"
+    ):
+        argparcel.parse(ArgsRequiredFlag, [], exit_on_error=False)
