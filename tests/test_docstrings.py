@@ -20,6 +20,9 @@ class Example1:
 
 @dataclasses.dataclass
 class Example2:
+    """Class docstring."""
+
+    """No-op string."""
     a: int
     # Line deliberately left blank
     """Message a.
