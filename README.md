@@ -5,7 +5,7 @@
 [![image](https://img.shields.io/pypi/pyversions/argparcel.svg)](https://pypi.python.org/pypi/argparcel)
 [![Actions status](https://github.com/tpgillam/argparcel/workflows/CI/badge.svg)](https://github.com/tpgillam/argparcel/actions)
 
-A minimalist library to parse command-line arguments into a dataclass.
+A library to parse command-line arguments into a dataclass.
 
 ## Example usage
 ```python
