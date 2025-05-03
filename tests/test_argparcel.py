@@ -94,14 +94,13 @@ def test_enum() -> None:
         argparcel.parse(MooEnum, ["--help"])
     help_text = f.getvalue()
     assert (
-        """usage: pytest [-h] [--x {Thingy.a,Thingy.b}] --y {Thingy.a,Thingy.b}
-              [--z {Thingy.a,Thingy.b}]
+        """usage: pytest [-h] [--x {a,b}] --y {a,b} [--z {a,b}]
 
 options:
-  -h, --help            show this help message and exit
-  --x {Thingy.a,Thingy.b}
-  --y {Thingy.a,Thingy.b}
-  --z {Thingy.a,Thingy.b}
+  -h, --help  show this help message and exit
+  --x {a,b}
+  --y {a,b}
+  --z {a,b}
 """
         in help_text
     )

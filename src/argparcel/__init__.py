@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+from collections.abc import Callable
 import dataclasses
 import enum
 import types
@@ -118,7 +119,7 @@ def _add_argument_from_field(
     parser: argparse.ArgumentParser,
     field: dataclasses.Field,
     name_to_type: Mapping[str, object],
-) -> None:
+) -> Callable[[typing.Any], typing.Any] | _Unspecified:
     name = f"--{field.name.replace('_', '-')}"
     no_default = field.default is dataclasses.MISSING
     field_type = _ensure_field_type(field.name, name_to_type[field.name])
@@ -157,8 +158,9 @@ def _add_argument_from_field(
             required=required,
             default=default,
         )
+        return _UNSPECIFIED
 
-    elif isinstance(base_type, typing._LiteralGenericAlias):  # pyright: ignore [reportAttributeAccessIssue]  # noqa: SLF001
+    if isinstance(base_type, typing._LiteralGenericAlias):  # pyright: ignore [reportAttributeAccessIssue]  # noqa: SLF001
         # Represent literal arguments with choices.
         _add_argument_choices(
             parser,
@@ -170,34 +172,54 @@ def _add_argument_from_field(
             field_type=field.type,
             field_name=field.name,
         )
+        return _UNSPECIFIED
 
-    elif isinstance(base_type, enum.EnumType):
-        # FIXME: This is inconsistent.
-        #   The help description lists the choices as e.g. `EnumName.a, EnumName.b`, but
-        #   the users should just pass `a` and `b`. But if we change `choices` to be a
-        #   sequence of strings, then the help becomes correct, but the parsing is then
-        #   broken.
+    if isinstance(base_type, enum.EnumType):
+        # Enums are a bit awkward. We handle them in two stages:
+        #   1. Let argparse treat them as a set of string choices, corresponding to the
+        #       name of each enum element. Note that we also need to modify any default
+        #       value to be consistent with this approach.
+        #   2. Convert back to an enum element prior to populating the dataclass.
+        #
+        # Telling argparse about the enum directly is awkward, as discussed in:
+        #   https://github.com/tpgillam/argparcel/issues/2
+        enum_element_names: tuple[str, ...] = tuple(
+            x.name  # pyright: ignore[reportAttributeAccessIssue]
+            for x in base_type
+        )
         _add_argument_choices(
             parser,
             name=name,
-            type_=base_type.__getitem__,  # Look up the enum element by name.
-            choices=tuple(base_type),  # Sequence of elements.
+            type_=str,
+            choices=enum_element_names,  # Sequence of elements.
             help_=help_,
             required=required,
-            default=default,
+            default=(
+                default
+                if isinstance(default, _Unspecified | types.NoneType)
+                else default.name
+            ),
             field_type=field.type,
             field_name=field.name,
         )
 
-    else:
-        _add_argument(
-            parser,
-            name=name,
-            type_=base_type,
-            help_=help_,
-            required=required,
-            default=default,
-        )
+        def _lookup_enum_element(value: str | None) -> enum.EnumType | None:
+            if value is None:
+                # Argument wasn't specified, so no conversion to do.
+                return None
+            return getattr(base_type, value)
+
+        return _lookup_enum_element
+
+    _add_argument(
+        parser,
+        name=name,
+        type_=base_type,
+        help_=help_,
+        required=required,
+        default=default,
+    )
+    return _UNSPECIFIED
 
 
 def arg(
@@ -221,7 +243,24 @@ def parse[T: _typeshed.DataclassInstance](
     # If 'future annotations' are in use, `Field.type` may be a string. If we use
     # `get_type_hints`, then these will get resolved into the actual runtime types.
     name_to_type = typing.get_type_hints(cls)
-    for field in dataclasses.fields(cls):
-        _add_argument_from_field(parser, field, name_to_type)
 
-    return cls(**parser.parse_args(command_line).__dict__)
+    # A mapping from argument name to a function that should be applied to whatever we
+    # get out of argparse, to give us the value we should give to the dataclass
+    # constructor.
+    name_to_converter: dict[str, Callable[[typing.Any], typing.Any]] = {}
+
+    for field in dataclasses.fields(cls):
+        converter = _add_argument_from_field(parser, field, name_to_type)
+        if not isinstance(converter, _Unspecified):
+            name_to_converter[field.name] = converter
+
+    # Get the raw arguments from argparse.
+    kwargs = parser.parse_args(command_line).__dict__
+
+    # Now apply any conversions required before constructing the dataclass.
+    converted_kwargs: dict[str, typing.Any] = {
+        k: name_to_converter[k](v) if k in name_to_converter else v
+        for k, v in kwargs.items()
+    }
+
+    return cls(**converted_kwargs)
