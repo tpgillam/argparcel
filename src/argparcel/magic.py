@@ -92,18 +92,18 @@ def _module_globals_including_type_checking(
         if not _is_type_checking_block(node):
             continue
 
-        for stmt in node.body:
-            if isinstance(stmt, ast.Import):
-                for alias in stmt.names:
+        for statement in node.body:
+            if isinstance(statement, ast.Import):
+                for alias in statement.names:
                     mod = importlib.import_module(alias.name)
                     asname = alias.asname or alias.name
                     globalns[asname] = mod
 
-            elif isinstance(stmt, ast.ImportFrom):
-                modname = stmt.module
+            elif isinstance(statement, ast.ImportFrom):
+                modname = statement.module
                 assert modname is not None
                 mod = importlib.import_module(modname)
-                for alias in stmt.names:
+                for alias in statement.names:
                     name = alias.name
                     asname = alias.asname or name
                     globalns[asname] = getattr(mod, name)
