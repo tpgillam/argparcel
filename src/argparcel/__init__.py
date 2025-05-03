@@ -213,7 +213,7 @@ def parse[T: _typeshed.DataclassInstance](
     cls: type[T],
     command_line: Sequence[str] | None = None,
     *,
-    exit_on_error: bool = False,
+    exit_on_error: bool = True,
 ) -> T:
     """Parse arguments into an instance of `cls`."""
     parser = argparse.ArgumentParser(exit_on_error=exit_on_error)
