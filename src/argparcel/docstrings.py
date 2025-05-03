@@ -48,17 +48,12 @@ def get_field_docstrings(cls: type[_typeshed.DataclassInstance]) -> dict[str, st
     for node, next_node in itertools.pairwise(class_node.body):
         if isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
             field_name = node.target.id
-            docstring: str | None = None
 
-            # Check if the next statement is a string literal
             if (
                 isinstance(next_node, ast.Expr)
                 and isinstance(next_node.value, ast.Constant)
                 and isinstance(next_node.value.value, str)
             ):
-                docstring = next_node.value.value
-
-            if docstring is not None:
-                result[field_name] = docstring
+                result[field_name] = next_node.value.value
 
     return result
