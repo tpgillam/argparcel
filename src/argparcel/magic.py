@@ -6,10 +6,11 @@ import ast
 import importlib
 import inspect
 import itertools
-import types
 import typing
 
 if typing.TYPE_CHECKING:
+    import types
+
     import _typeshed
 
 
