@@ -243,7 +243,6 @@ def parse[T: _typeshed.DataclassInstance](
     # get out of argparse, to give us the value we should give to the dataclass
     # constructor.
     name_to_converter: dict[str, Callable[[typing.Any], typing.Any]] = {}
-
     for field in dataclasses.fields(cls):
         converter = _add_argument_from_field(parser, field, name_to_type, name_to_help)
         if not isinstance(converter, _Unspecified):
@@ -253,7 +252,7 @@ def parse[T: _typeshed.DataclassInstance](
     kwargs = parser.parse_args(command_line).__dict__
 
     # Now apply any conversions required before constructing the dataclass.
-    converted_kwargs: dict[str, typing.Any] = {
+    converted_kwargs = {
         k: name_to_converter[k](v) if k in name_to_converter else v
         for k, v in kwargs.items()
     }
