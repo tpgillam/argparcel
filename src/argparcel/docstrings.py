@@ -11,9 +11,13 @@ from __future__ import annotations
 
 import ast
 import inspect
+import typing
+
+if typing.TYPE_CHECKING:
+    import _typeshed
 
 
-def get_field_docstrings(cls: type) -> dict[str, str]:
+def get_field_docstrings(cls: type[_typeshed.DataclassInstance]) -> dict[str, str]:
     """Extracts 'docstrings' for all fields in a dataclass, if present.
 
     If a 'docstring' is not found for a given field, it will not be included in the
