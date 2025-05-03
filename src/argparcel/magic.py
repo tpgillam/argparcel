@@ -1,11 +1,4 @@
-"""Utility to parse 'field docstrings' from a dataclass.
-
-Static-analysis tools like pyright will interpret strings that appear immediately after
-the definition of a field in a dataclass as documentation for that field, so this is an
-'expected' concept. However, it is _not_ a feature of the Python runtime.
-
-For that reason we resort to some dastardly AST inspection to extract the messages.
-"""
+"""Dangerously magical AST-based utilities."""
 
 from __future__ import annotations
 
@@ -23,6 +16,13 @@ def get_field_docstrings(cls: type[_typeshed.DataclassInstance]) -> dict[str, st
 
     Returns a mapping from field name -> docstring, only for fields with which strings
     can be associated.
+
+
+    Static-analysis tools like pyright will interpret strings that appear immediately
+    after the definition of a field in a dataclass as documentation for that field, so
+    this is an 'expected' concept. However, it is _not_ a feature of the Python runtime.
+
+    For that reason we resort to some dastardly AST inspection to extract the messages.
     """
     # Obtaining the source code might fail with an exception; we let that propagate up
     # to the user.

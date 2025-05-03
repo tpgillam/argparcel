@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import dataclasses
 
-from argparcel.docstrings import get_field_docstrings
+from argparcel.magic import get_field_docstrings
 
 
 @dataclasses.dataclass

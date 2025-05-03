@@ -6,7 +6,7 @@ import enum
 import types
 import typing
 
-from argparcel.docstrings import get_field_docstrings
+from argparcel import magic
 
 if typing.TYPE_CHECKING:
     from collections.abc import Callable, Mapping, Sequence
@@ -237,7 +237,7 @@ def parse[T: _typeshed.DataclassInstance](
     name_to_type = typing.get_type_hints(cls)
 
     # Get the 'help' messages from any 'docstrings'.
-    name_to_help = get_field_docstrings(cls)
+    name_to_help = magic.get_field_docstrings(cls)
 
     # A mapping from argument name to a function that should be applied to whatever we
     # get out of argparse, to give us the value we should give to the dataclass
