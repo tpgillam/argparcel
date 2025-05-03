@@ -120,7 +120,11 @@ def _add_argument_from_field(
     name_to_type: Mapping[str, object],
 ) -> Callable[[typing.Any], typing.Any] | _Unspecified:
     name = f"--{field.name.replace('_', '-')}"
-    no_default = field.default is dataclasses.MISSING
+
+    # An argument is 'required' if the user MUST specify it on the command line. We
+    # equate this with the field on the dataclass not having a default value.
+    required = field.default is dataclasses.MISSING
+
     field_type = _ensure_field_type(field.name, name_to_type[field.name])
     help_ = field.metadata.get(_HELP_KEY)
     if not (help_ is None or isinstance(help_, str)):
@@ -132,20 +136,16 @@ def _add_argument_from_field(
         types.UnionType | typing._UnionGenericAlias,  # pyright: ignore [reportAttributeAccessIssue]  # noqa: SLF001
     ):
         base_types = typing.get_args(field_type)
-        allow_missing = any(x is types.NoneType for x in base_types)
+        assert len(base_types) > 0
         non_none_types = tuple(x for x in base_types if x is not types.NoneType)
         if len(non_none_types) != 1:
-            msg = f"Can only support one non-None type for '{field.name}': {field.type}"
+            msg = f"More than one non-None type given for '{field.name}'; {field.type}"
             raise ValueError(msg)
         base_type = non_none_types[0]
     else:
-        allow_missing = False
         base_type = field_type
 
-    default = _UNSPECIFIED if no_default else field.default
-
-    # An argument is 'required' if the user MUST specify it on the command line.
-    required = no_default and (not allow_missing)
+    default = _UNSPECIFIED if required else field.default
 
     if base_type is bool:
         # Represent boolean arguments as 'flags'
