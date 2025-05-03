@@ -10,57 +10,44 @@ A minimalist library to parse command-line arguments into a dataclass.
 ## Example usage
 ```python
 import dataclasses
-import pathlib
 from typing import Literal
 
 import argparcel
 
 
 @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
-class Moo:
-    a: int | None = None
+class _Args:
+    a: int
     b: float
-    choice: Literal[1, 2, 3] | None = argparcel.arg(help="choose wisely", default=None)
-    path: pathlib.Path | None
-    c: bool = True
-    description: str | None = None
+    c: Literal[1, 2, 3] = argparcel.arg(help="choose wisely")
+    d: bool = True
+    e: str | None = None
 
 
-
-print(argparcel.parse(Moo, ["--a", "2", "--b", "3.2"]))
-print(argparcel.parse(Moo, ["--a", "2", "--b", "3.2", "--no-c"]))
-print(argparcel.parse(Moo, ["--b", "4", "--c"]))
-print(argparcel.parse(Moo, ["--b", "4", "--c", "--description", "moo moo"]))
-print(
-    argparcel.parse(
-        Moo,
-        [
-            "--b",
-            "4",
-            "--c",
-            "--description",
-            "moo moo",
-            "--path",
-            "/somewhere/over/the/rainbow",
-        ],
-    )
-)
+if __name__ == "__main__":
+    print(argparcel.parse(_Args))
 ```
 
 ```console
-Moo(a=2, b=3.2, choice=1, path=None, c=True, description=None)
-Moo(a=2, b=3.2, choice=3, path=None, c=False, description=None)
-Moo(a=None, b=4.0, choice=None, path=None, c=True, description=None)
-Moo(a=None, b=4.0, choice=None, path=None, c=True, description='moo moo')
-Moo(
-    a=None,
-    b=4.0,
-    choice=None,
-    path=PosixPath('/somewhere/over/the/rainbow'),
-    c=True,
-    description='moo moo'
-)
+$ python examples/example_0.py --help
+usage: example_0.py [-h] --a A --b B --c {1,2,3} [--d | --no-d] [--e E]
 
+options:
+  -h, --help   show this help message and exit
+  --a A
+  --b B
+  --c {1,2,3}  choose wisely
+  --d, --no-d
+  --e E
+
+$ python examples/example_0.py --a 2 --b 3.2 --c 1
+_Args(a=2, b=3.2, c=1, d=True, e=None)
+
+$ python examples/example_0.py --a 2 --b 3.2 --c 1 --no-d
+_Args(a=2, b=3.2, c=1, d=False, e=None)
+
+$ python examples/example_0.py --a 2 --b 3.2 --c 1 --no-d  --e moo
+_Args(a=2, b=3.2, c=1, d=False, e='moo')
 ```
 
 Another example:
