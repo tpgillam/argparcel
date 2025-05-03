@@ -9,84 +9,100 @@ A minimalist library to parse command-line arguments into a dataclass.
 
 ## Example usage
 ```python
+# examples/example_0.py
 import dataclasses
-import pathlib
-from typing import Literal
 
 import argparcel
 
 
 @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
-class Moo:
-    a: int | None = None
+class _Args:
+    a: int
     b: float
-    choice: Literal[1, 2, 3] | None = argparcel.arg(help="choose wisely", default=None)
-    path: pathlib.Path | None
-    c: bool = True
-    description: str | None = None
+
+    # A `bool` argument will create a linked pair of flags `--c` and `--no-c`.
+    c: bool
+
+    # A command line argument will be optional if and only if a default value is
+    # provided in the corresponding dataclass field.
+    d: str | None = None
 
 
-
-print(argparcel.parse(Moo, ["--a", "2", "--b", "3.2"]))
-print(argparcel.parse(Moo, ["--a", "2", "--b", "3.2", "--no-c"]))
-print(argparcel.parse(Moo, ["--b", "4", "--c"]))
-print(argparcel.parse(Moo, ["--b", "4", "--c", "--description", "moo moo"]))
-print(
-    argparcel.parse(
-        Moo,
-        [
-            "--b",
-            "4",
-            "--c",
-            "--description",
-            "moo moo",
-            "--path",
-            "/somewhere/over/the/rainbow",
-        ],
-    )
-)
+if __name__ == "__main__":
+    print(argparcel.parse(_Args))
 ```
 
 ```console
-Moo(a=2, b=3.2, choice=1, path=None, c=True, description=None)
-Moo(a=2, b=3.2, choice=3, path=None, c=False, description=None)
-Moo(a=None, b=4.0, choice=None, path=None, c=True, description=None)
-Moo(a=None, b=4.0, choice=None, path=None, c=True, description='moo moo')
-Moo(
-    a=None,
-    b=4.0,
-    choice=None,
-    path=PosixPath('/somewhere/over/the/rainbow'),
-    c=True,
-    description='moo moo'
-)
+$ uv run examples/example_0.py --help
+usage: example_0.py [-h] --a A --b B --c | --no-c [--d D]
 
+options:
+  -h, --help   show this help message and exit
+  --a A
+  --b B
+  --c, --no-c
+  --d D
+
+$ uv run examples/example_0.py --a 2 --b 3.2 --c
+_Args(a=2, b=3.2, c=True, d=None)
+
+$ uv run examples/example_0.py --a 2 --b 3.2 --no-c
+_Args(a=2, b=3.2, c=False, d=None)
+
+$ uv run examples/example_0.py --a 2 --b 3.2 --no-c  --d moo
+_Args(a=2, b=3.2, c=False, d='moo')
 ```
 
-Another example:
+We also support:
+- `Literal` and `Enum`s forcing specific choices
+- conversion to types whose `__init__` accepts a string, e.g. `pathlib.Path`
+- 'help' can be provided too
+
 ```python
-class Thingy(enum.Enum):
-    a = enum.auto()
-    b = enum.auto()
+# examples/example_1.py
+import dataclasses
+import enum
+import pathlib 
+from typing import Literal
+
+import argparcel
+
+
+class Bird(enum.Enum):
+    puffin = enum.auto()
+    lark = enum.auto()
 
 
 @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
-class Moo2:
-    choice: Literal[1, 2, 3] | None = None
-    no_choice: Literal["foo", "bar"] = argparcel.arg(help="baz")
-    thingy: Thingy = Thingy.a
+class _Args:
+    # Using a `Literal` will force a choice between 1, 2, or 3.
+    a: Literal[1, 2, 3]
+
+    # An enum will force a choice between the names of the enum elements.
+    b: Bird = Bird.puffin
+
+    # A `Path` can be automatically converted from a string. Here we also specify a
+    # 'help' message along with a default by using `argparcel.arg`
+    c: pathlib.Path | None = argparcel.arg(help="specify a path", default=None)  # noqa: RUF009
 
 
-argparcel.parse(Moo2, ["--help"])
+if __name__ == "__main__":
+    print(argparcel.parse(_Args))
 ```
 
 ```console
-usage: moo.py [-h] [--choice {1,2,3}] --no-choice {foo,bar} [--thingy {a,b}]
+$ uv run examples/example_1.py --help
+usage: example_1.py [-h] --a {1,2,3} [--b {puffin,lark}] [--c C]
 
 options:
-  -h, --help            show this help message and exit
-  --choice {1,2,3}
-  --no-choice {foo,bar}
-                        baz
-  --thingy {a,b}
+  -h, --help         show this help message and exit
+  --a {1,2,3}
+  --b {puffin,lark}
+  --c C              specify a path
+
+$ uv run examples/example_1.py --a 2
+_Args(a=2, b=<Bird.puffin: 1>, c=None)
+
+$ uv run examples/example_1.py --a 2 --b lark --c /somewhere/to/go
+_Args(a=2, b=<Bird.lark: 2>, c=PosixPath('/somewhere/to/go'))
 ```
