@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import contextlib
 import dataclasses
 import enum
@@ -7,15 +8,17 @@ import io
 import pathlib
 from typing import Literal
 
+import pytest
+
 import argparcel
 
 
 @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
 class Moo:
-    a: int | None
+    a: int | None = None
     b: float
-    choice: Literal[1, 2, 3] | None = argparcel.arg(help="choose wisely")
-    path: pathlib.Path | None
+    choice: Literal[1, 2, 3] | None = argparcel.arg(help="choose wisely", default=None)
+    path: pathlib.Path | None = None
     c: bool = True
     description: str | None = None
 
@@ -56,7 +59,7 @@ def test_happy_paths() -> None:
 
 @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
 class MooLiteral:
-    optional_choice: Literal[1, 2, 3] | None
+    optional_choice: Literal[1, 2, 3] | None = None
     choice: Literal["foo", "bar"]
     defaulted_choice: Literal["a", "b", "c"] = "c"
 
@@ -93,21 +96,21 @@ class ThingyInt(enum.IntEnum):
 class MooEnum:
     x: Thingy = Thingy.a
     y: Thingy
-    z: Thingy | None
+    z: Thingy | None = None
 
 
 @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
 class MooStrEnum:
     x: ThingyStr = ThingyStr.a
     y: ThingyStr
-    z: ThingyStr | None
+    z: ThingyStr | None = None
 
 
 @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
 class MooIntEnum:
     x: ThingyInt = ThingyInt.a
     y: ThingyInt
-    z: ThingyInt | None
+    z: ThingyInt | None = None
 
 
 def test_enum_help() -> None:
@@ -174,3 +177,17 @@ def test_int_enum() -> None:
     assert argparcel.parse(MooIntEnum, ["--y", "b", "--z", "b"]) == MooIntEnum(
         x=ThingyInt.a, y=ThingyInt.b, z=ThingyInt.b
     )
+
+
+@dataclasses.dataclass
+class ArgsRequiredFlag:
+    a: bool
+
+
+def test_missing_argument() -> None:
+    with pytest.raises(argparse.ArgumentError, match="arguments are required: --b"):
+        argparcel.parse(Moo, [], exit_on_error=False)
+    with pytest.raises(
+        argparse.ArgumentError, match="arguments are required: --a/--no-a"
+    ):
+        argparcel.parse(ArgsRequiredFlag, [], exit_on_error=False)
