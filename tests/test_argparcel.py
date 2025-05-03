@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import contextlib
 import dataclasses
+import enum
+import io
 import pathlib
 from typing import Literal
 
@@ -69,3 +72,49 @@ def test_literals() -> None:
         MooLiteral,
         ["--optional-choice", "1", "--choice", "foo", "--defaulted-choice", "a"],
     ) == MooLiteral(optional_choice=1, choice="foo", defaulted_choice="a")
+
+
+class Thingy(enum.Enum):
+    a = enum.auto()
+    b = enum.auto()
+
+
+@dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
+class MooEnum:
+    x: Thingy = Thingy.a
+    y: Thingy
+    z: Thingy | None
+
+
+def test_enum() -> None:
+    with (
+        contextlib.redirect_stdout(io.StringIO()) as f,
+        contextlib.suppress(SystemExit),
+    ):
+        argparcel.parse(MooEnum, ["--help"])
+    help_text = f.getvalue()
+    assert (
+        """usage: pytest [-h] [--x {Thingy.a,Thingy.b}] --y {Thingy.a,Thingy.b}
+              [--z {Thingy.a,Thingy.b}]
+
+options:
+  -h, --help            show this help message and exit
+  --x {Thingy.a,Thingy.b}
+  --y {Thingy.a,Thingy.b}
+  --z {Thingy.a,Thingy.b}
+"""
+        in help_text
+    )
+
+    assert argparcel.parse(MooEnum, ["--y", "a"]) == MooEnum(
+        x=Thingy.a, y=Thingy.a, z=None
+    )
+    assert argparcel.parse(MooEnum, ["--y", "b"]) == MooEnum(
+        x=Thingy.a, y=Thingy.b, z=None
+    )
+    assert argparcel.parse(MooEnum, ["--x", "b", "--y", "b"]) == MooEnum(
+        x=Thingy.b, y=Thingy.b, z=None
+    )
+    assert argparcel.parse(MooEnum, ["--y", "b", "--z", "b"]) == MooEnum(
+        x=Thingy.a, y=Thingy.b, z=Thingy.b
+    )
