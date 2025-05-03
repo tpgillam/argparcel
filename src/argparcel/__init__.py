@@ -234,7 +234,7 @@ def parse[T: _typeshed.DataclassInstance](
 
     # If 'future annotations' are in use, `Field.type` may be a string. If we use
     # `get_type_hints`, then these will get resolved into the actual runtime types.
-    name_to_type = typing.get_type_hints(cls)
+    name_to_type = magic.get_type_hints(cls)
 
     # Get the 'help' messages from any 'docstrings'.
     name_to_help = magic.get_field_docstrings(cls)

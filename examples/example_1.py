@@ -2,15 +2,12 @@ from __future__ import annotations
 
 import dataclasses
 import enum
-
-# NOTE: Ruff rule TC003: https://docs.astral.sh/ruff/rules/typing-only-standard-library-import/
-#   argparcel requires pathlib to be imported at runtime, since it will be used for
-#   conversion. Static analysis tools (like ruff) notice that we're only using the type
-#   for annotating the dataclass, however argparcel inspects this at runtime.
-import pathlib  # noqa: TC003
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 import argparcel
+
+if TYPE_CHECKING:
+    import pathlib
 
 
 class Bird(enum.Enum):
