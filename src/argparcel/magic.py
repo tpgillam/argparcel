@@ -111,7 +111,9 @@ def _module_globals_including_type_checking(  # noqa: C901
                         # Do not overwrite names that have already been loaded into the
                         # namespace.
                         continue
-                    globalns[asname] = importlib.import_module(alias.name)
+                    globalns[asname] = importlib.import_module(
+                        alias.name, package=module.__package__
+                    )
 
             elif isinstance(statement, ast.ImportFrom):
                 # We have a statement of the form:
@@ -131,7 +133,9 @@ def _module_globals_including_type_checking(  # noqa: C901
                         continue
                     if imported_module is None:
                         # We need an attribute from the module, so import it now.
-                        imported_module = importlib.import_module(module_name)
+                        imported_module = importlib.import_module(
+                            module_name, package=module.__package__
+                        )
                     globalns[asname] = getattr(imported_module, alias.name)
 
     return globalns
