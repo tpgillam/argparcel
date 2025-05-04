@@ -118,7 +118,7 @@ def _add_argument_from_field(
     name_to_type: Mapping[str, object],
     name_to_help: Mapping[str, str],
 ) -> Callable[[typing.Any], typing.Any] | _Unspecified:
-    name = f"--{field.name.replace('_', '-')}"
+    arg_name = f"--{field.name.replace('_', '-')}"
 
     # An argument is 'required' if the user MUST specify it on the command line. We
     # equate this with the field on the dataclass not having a default value.
@@ -153,7 +153,7 @@ def _add_argument_from_field(
         # Represent boolean arguments as 'flags'
         _add_argument(
             parser=parser,
-            name=name,
+            name=arg_name,
             action=argparse.BooleanOptionalAction,
             help_=help_,
             required=required,
@@ -165,7 +165,7 @@ def _add_argument_from_field(
         # Represent literal arguments with choices.
         _add_argument_choices(
             parser,
-            name=name,
+            name=arg_name,
             choices=typing.get_args(base_type),
             help_=help_,
             required=required,
@@ -190,7 +190,7 @@ def _add_argument_from_field(
         )
         _add_argument_choices(
             parser,
-            name=name,
+            name=arg_name,
             type_=str,
             choices=enum_element_names,  # Sequence of elements.
             help_=help_,
@@ -214,7 +214,7 @@ def _add_argument_from_field(
 
     _add_argument(
         parser,
-        name=name,
+        name=arg_name,
         type_=base_type,
         help_=help_,
         required=required,
