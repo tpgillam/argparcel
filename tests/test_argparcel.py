@@ -117,10 +117,7 @@ class MooIntEnum:
 
 def test_enum_help() -> None:
     for type_ in (MooEnum, MooStrEnum, MooIntEnum):
-        with (
-            contextlib.redirect_stdout(io.StringIO()) as f,
-            contextlib.suppress(SystemExit),
-        ):
+        with contextlib.redirect_stdout(io.StringIO()) as f, pytest.raises(SystemExit):
             argparcel.parse(type_, ["--help"])
         help_text = f.getvalue()
         assert (
@@ -193,3 +190,27 @@ def test_missing_argument() -> None:
         argparse.ArgumentError, match="arguments are required: --a/--no-a"
     ):
         argparcel.parse(ArgsRequiredFlag, [], exit_on_error=False)
+
+
+@dataclasses.dataclass
+class BadUnderscore1:
+    _a: bool
+
+
+@dataclasses.dataclass
+class BadUnderscore2:
+    # pyright tells us we're not allowed to do this. For the sake of our testing, let's
+    # brute force it.
+    __a: bool  # pyright: ignore [reportGeneralTypeIssues]
+
+
+def test_bad_underscores() -> None:
+    with pytest.raises(
+        ValueError, match="Field names must not start with an underscore; got '_a'"
+    ):
+        argparcel.parse(BadUnderscore1, ["--help"])
+
+    with pytest.raises(
+        ValueError, match="Field names must not start with an underscore; got '__a'"
+    ):
+        argparcel.parse(BadUnderscore2, ["--help"])
