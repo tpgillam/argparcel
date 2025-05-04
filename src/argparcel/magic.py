@@ -80,13 +80,17 @@ def _is_type_checking_block(node: ast.AST) -> typing.TypeGuard[ast.If]:
     return False
 
 
-def _module_globals_including_type_checking(
+def _module_globals_including_type_checking(  # noqa: C901
     module: types.ModuleType, *, allowed_extra_names: frozenset[str]
 ) -> dict[str, typing.Any]:
     """Get the global namespace for `module`... including imports in TYPE_CHECKING.
 
-    Of any imports identified in TYPE_CHECKING blocks, only names that appear in
-    `allowed_extra_names` will actually be imported.
+    A few semantics:
+        - of any imports identified in TYPE_CHECKING blocks, only names that appear in
+        `allowed_extra_names` will actually be imported.
+        - only names that are _not_ already known in the normal runtime module namespace
+          will be imported
+        - the minim
     """
     source = inspect.getsource(module)
     globalns = dict(vars(module))
@@ -102,20 +106,33 @@ def _module_globals_including_type_checking(
                 for alias in statement.names:
                     if alias.name not in allowed_extra_names:
                         continue
-                    mod = importlib.import_module(alias.name)
                     asname = alias.asname or alias.name
-                    globalns[asname] = mod
+                    if asname in globalns:
+                        # Do not overwrite names that have already been loaded into the
+                        # namespace.
+                        continue
+                    globalns[asname] = importlib.import_module(alias.name)
 
             elif isinstance(statement, ast.ImportFrom):
-                modname = statement.module
-                assert modname is not None
-                mod = importlib.import_module(modname)
+                # We have a statement of the form:
+                #   from <X> import A, B, C
+                #
+                # We will _lazily_ import X if we determine we need any of A, B or C.
+                module_name = statement.module
+                assert module_name is not None
+                imported_module: types.ModuleType | None = None
                 for alias in statement.names:
                     if alias.name not in allowed_extra_names:
                         continue
-                    name = alias.name
-                    asname = alias.asname or name
-                    globalns[asname] = getattr(mod, name)
+                    asname = alias.asname or alias.name
+                    if asname in globalns:
+                        # Do not overwrite names that have already been loaded into the
+                        # namespace.
+                        continue
+                    if imported_module is None:
+                        # We need an attribute from the module, so import it now.
+                        imported_module = importlib.import_module(module_name)
+                    globalns[asname] = getattr(imported_module, alias.name)
 
     return globalns
 
