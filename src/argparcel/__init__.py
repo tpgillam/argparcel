@@ -118,6 +118,9 @@ def _add_argument_from_field(
     name_to_type: Mapping[str, object],
     name_to_help: Mapping[str, str],
 ) -> Callable[[typing.Any], typing.Any] | _Unspecified:
+    if field.name.startswith("_"):
+        msg = f"Field names must not start with an underscore; got {field.name!r}"
+        raise ValueError(msg)
     arg_name = f"--{field.name.replace('_', '-')}"
 
     # An argument is 'required' if the user MUST specify it on the command line. We

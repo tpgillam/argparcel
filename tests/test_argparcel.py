@@ -203,6 +203,10 @@ class BadUnderscore2:
     # brute force it.
     __a: bool  # pyright: ignore [reportGeneralTypeIssues]
 
+    def moo(self) -> bool:
+        # This exists purely so pyright doesn't see `__a` as being unaccessed.
+        return self.__a
+
 
 def test_bad_underscores() -> None:
     with pytest.raises(
@@ -211,6 +215,7 @@ def test_bad_underscores() -> None:
         argparcel.parse(BadUnderscore1, ["--help"])
 
     with pytest.raises(
-        ValueError, match="Field names must not start with an underscore; got '__a'"
+        ValueError,
+        match="Field names must not start with an underscore; got '_BadUnderscore2__a'",
     ):
         argparcel.parse(BadUnderscore2, ["--help"])
