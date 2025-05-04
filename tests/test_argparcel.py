@@ -6,11 +6,14 @@ import dataclasses
 import enum
 import io
 import pathlib
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 import pytest
 
 import argparcel
+
+if TYPE_CHECKING:
+    import _typeshed
 
 
 @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
@@ -115,14 +118,16 @@ class MooIntEnum:
     z: ThingyInt | None = None
 
 
+def _get_help_text(cls: type[_typeshed.DataclassInstance]) -> str:
+    """Get the output of `--help` if using argparcel with `cls`."""
+    with contextlib.redirect_stdout(io.StringIO()) as f, pytest.raises(SystemExit):
+        argparcel.parse(cls, ["--help"])
+    return f.getvalue()
+
+
 def test_enum_help() -> None:
     for type_ in (MooEnum, MooStrEnum, MooIntEnum):
-        with (
-            contextlib.redirect_stdout(io.StringIO()) as f,
-            contextlib.suppress(SystemExit),
-        ):
-            argparcel.parse(type_, ["--help"])
-        help_text = f.getvalue()
+        help_text = _get_help_text(type_)
         assert (
             """[-h] [--x {a,b}] --y {a,b} [--z {a,b}]
 
@@ -193,3 +198,61 @@ def test_missing_argument() -> None:
         argparse.ArgumentError, match="arguments are required: --a/--no-a"
     ):
         argparcel.parse(ArgsRequiredFlag, [], exit_on_error=False)
+
+
+@dataclasses.dataclass
+class BadUnderscore1:
+    _a: bool
+
+
+@dataclasses.dataclass
+class BadUnderscore2:
+    # pyright tells us we're not allowed to do this. For the sake of our testing, let's
+    # brute force it.
+    __a: bool  # pyright: ignore [reportGeneralTypeIssues]
+
+    def moo(self) -> bool:
+        # This exists purely so pyright doesn't see `__a` as being unaccessed.
+        return self.__a
+
+
+def test_bad_underscores() -> None:
+    with pytest.raises(
+        ValueError, match="Field names must not start with an underscore; got '_a'"
+    ):
+        argparcel.parse(BadUnderscore1, ["--help"])
+
+    with pytest.raises(
+        ValueError,
+        match="Field names must not start with an underscore; got '_BadUnderscore2__a'",
+    ):
+        argparcel.parse(BadUnderscore2, ["--help"])
+
+
+@dataclasses.dataclass
+class MooWithMethods:
+    a: bool
+
+    @property
+    def b(self) -> bool:
+        return self.a
+
+    def c(self) -> bool:
+        return self.a
+
+
+def test_properties_and_methods_ok() -> None:
+    # The presence of properties and methods should not impact parsing; they do not
+    # count as fields and therefore should not be added as arguments.
+    help_text = _get_help_text(MooWithMethods)
+    assert (
+        """[-h] --a | --no-a
+
+options:
+  -h, --help   show this help message and exit
+  --a, --no-a
+"""
+        in help_text
+    )
+
+    assert argparcel.parse(MooWithMethods, ["--a"]) == MooWithMethods(a=True)
