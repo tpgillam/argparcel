@@ -2,12 +2,7 @@ from __future__ import annotations
 
 import dataclasses
 import enum
-
-# NOTE: Ruff rule TC003: https://docs.astral.sh/ruff/rules/typing-only-standard-library-import/
-#   argparcel requires pathlib to be imported at runtime, since it will be used for
-#   conversion. Static analysis tools (like ruff) notice that we're only using the type
-#   for annotating the dataclass, however argparcel inspects this at runtime.
-import pathlib  # noqa: TC003
+import pathlib
 from typing import Literal
 
 import argparcel
@@ -18,6 +13,17 @@ class Bird(enum.Enum):
     lark = enum.auto()
 
 
+# argparcel requires pathlib to be imported at runtime, since it will be used for
+# conversion. Static analysis tools (like ruff) notice that we're only using the type
+# for annotating the dataclass, and so might suggest moving its import to a
+# TYPE_CHECKING block.
+#
+# The `uses_types` function is a trivial function to indicate types required at runtime
+# to your linter.
+#
+# TODO: remove pyright ignore when following is resolved:
+#   https://github.com/microsoft/pyright/issues/10417
+@argparcel.uses_types(pathlib.Path)  # pyright: ignore [reportArgumentType]
 @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
 class _Args:
     # Using a `Literal` will force a choice between 1, 2, or 3.

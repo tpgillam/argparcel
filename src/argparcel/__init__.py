@@ -14,7 +14,7 @@ if typing.TYPE_CHECKING:
     import _typeshed
 
 
-__all__ = ["parse"]
+__all__ = ["parse", "uses_types"]
 
 
 def _ensure_field_type(
@@ -261,3 +261,23 @@ def parse[T: _typeshed.DataclassInstance](
     }
 
     return cls(**converted_kwargs)
+
+
+class DataclassDecorator(typing.Protocol):
+    def __call__[T: type[_typeshed.DataclassInstance]](self, cls: T) -> T: ...
+
+
+def uses_types(*types: type | types.ModuleType) -> DataclassDecorator:
+    """Decorate a dataclass, and indicate types needed at runtime.
+
+    The existence of this method is a somewhat disgusting workaround to let you, the
+    user, declare to your static linting tools that a type is required at runtime, and
+    that the import must not be moved into a `TYPE_CHECKING` block.
+    """
+    # TODO: verify types are required.
+    del types
+
+    def _f[T: type[_typeshed.DataclassInstance]](cls: T) -> T:
+        return cls
+
+    return _f
