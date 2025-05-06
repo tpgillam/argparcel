@@ -274,7 +274,6 @@ def uses_types(*types: type | types.ModuleType) -> DataclassDecorator:
     user, declare to your static linting tools that a type is required at runtime, and
     that the import must not be moved into a `TYPE_CHECKING` block.
     """
-    # TODO: verify types are required.
     del types
 
     def _f[T: type[_typeshed.DataclassInstance]](cls: T) -> T:
