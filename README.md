@@ -166,6 +166,7 @@ class Args:
 ```
 
 This decorator is _only_ a convenience to allow the user to indicate to their linter
-that the type is required.
+that the type is required. There's no requirement to specify all types that the
+dataclass uses.
 
 3. Use your own contrivance to ensure that the types are referenced at runtime.
