@@ -263,7 +263,7 @@ def parse[T: _typeshed.DataclassInstance](
     return cls(**converted_kwargs)
 
 
-def uses_types[T](*types: type | types.ModuleType) -> Callable[[T], T]:
+def uses_types[T](*types: type) -> Callable[[T], T]:
     """Decorate a dataclass, and indicate types needed at runtime.
 
     The existence of this method is a somewhat disgusting workaround to let you, the
