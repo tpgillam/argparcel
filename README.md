@@ -16,7 +16,7 @@ import argparcel
 
 
 @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
-class _Args:
+class Args:
     a: int
     b: float
 
@@ -29,7 +29,7 @@ class _Args:
 
 
 if __name__ == "__main__":
-    print(argparcel.parse(_Args))
+    print(argparcel.parse(Args))
 ```
 
 ```console
@@ -44,13 +44,13 @@ options:
   --d D
 
 $ uv run examples/example_0.py --a 2 --b 3.2 --c
-_Args(a=2, b=3.2, c=True, d=None)
+Args(a=2, b=3.2, c=True, d=None)
 
 $ uv run examples/example_0.py --a 2 --b 3.2 --no-c
-_Args(a=2, b=3.2, c=False, d=None)
+Args(a=2, b=3.2, c=False, d=None)
 
 $ uv run examples/example_0.py --a 2 --b 3.2 --no-c  --d moo
-_Args(a=2, b=3.2, c=False, d='moo')
+Args(a=2, b=3.2, c=False, d='moo')
 ```
 
 We also support:
@@ -74,7 +74,7 @@ class Bird(enum.Enum):
 
 
 @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
-class _Args:
+class Args:
     # Using a `Literal` will force a choice between 1, 2, or 3.
     a: Literal[1, 2, 3]
 
@@ -88,7 +88,7 @@ class _Args:
 
 
 if __name__ == "__main__":
-    print(argparcel.parse(_Args))
+    print(argparcel.parse(Args))
 ```
 
 ```console
@@ -102,10 +102,10 @@ options:
   --c C              An important path.
 
 $ uv run examples/example_1.py --a 2
-_Args(a=2, b=<Bird.puffin: 1>, c=None)
+Args(a=2, b=<Bird.puffin: 1>, c=None)
 
 $ uv run examples/example_1.py --a 2 --b lark --c /somewhere/to/go
-_Args(a=2, b=<Bird.lark: 2>, c=PosixPath('/somewhere/to/go'))
+Args(a=2, b=<Bird.lark: 2>, c=PosixPath('/somewhere/to/go'))
 ```
 
 ## Pitfall: forward-references
@@ -113,7 +113,7 @@ _Args(a=2, b=<Bird.lark: 2>, c=PosixPath('/somewhere/to/go'))
 All types used in annotations _must_ be available at runtime.
 
 Specifically, when you call `argparcel.parse(Args)`, internally it relies upon
-`typings.get_type_hints(_Args)` working. It will not work if any of the type annotations
+`typings.get_type_hints(Args)` working. It will not work if any of the type annotations
 for fields in `Args` can't be resolved at runtime. 
 
 A plausible scenario for this to fail is when using forward references.

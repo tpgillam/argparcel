@@ -22,7 +22,7 @@ class Bird(enum.Enum):
 # to your linter.
 @argparcel.uses_types(pathlib.Path)
 @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
-class _Args:
+class Args:
     # Using a `Literal` will force a choice between 1, 2, or 3.
     a: Literal[1, 2, 3]
 
@@ -36,4 +36,4 @@ class _Args:
 
 
 if __name__ == "__main__":
-    print(argparcel.parse(_Args))
+    print(argparcel.parse(Args))
