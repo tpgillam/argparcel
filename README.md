@@ -119,9 +119,9 @@ for fields in `Args` can't be resolved at runtime.
 A plausible scenario for this to fail is when using forward references.
 
 Forward references are used when:
-- annotating with a string
-- you have `from future import __annotations__` in the module
-- you're using Python 3.14 or later
+- annotating with a string, or
+- you have `from future import __annotations__` in the module, or
+- you're using Python 3.14 or later.
 
 In any of these cases, a linter rule like [ruff's TC003](https://docs.astral.sh/ruff/rules/typing-only-standard-library-import/) may encourage you to move an import into a `TYPE_CHECKING`-guarded block, like so:
 
