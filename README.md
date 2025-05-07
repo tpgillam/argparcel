@@ -142,7 +142,7 @@ class Args:
     x: Path
 
 
-argparcel.parse(Args)  # Throws NameError
+argparcel.parse(Args)  # Raises NameError
 ```
 
 But if you run this, you'll get:
