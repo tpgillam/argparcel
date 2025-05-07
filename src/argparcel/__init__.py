@@ -263,11 +263,7 @@ def parse[T: _typeshed.DataclassInstance](
     return cls(**converted_kwargs)
 
 
-class DataclassDecorator(typing.Protocol):
-    def __call__[T: type[_typeshed.DataclassInstance]](self, cls: T) -> T: ...
-
-
-def uses_types(*types: type | types.ModuleType) -> DataclassDecorator:
+def uses_types[T](*types: type | types.ModuleType) -> Callable[[T], T]:
     """Decorate a dataclass, and indicate types needed at runtime.
 
     The existence of this method is a somewhat disgusting workaround to let you, the
@@ -276,7 +272,7 @@ def uses_types(*types: type | types.ModuleType) -> DataclassDecorator:
     """
     del types
 
-    def _f[T: type[_typeshed.DataclassInstance]](cls: T) -> T:
+    def _f[_T](cls: _T) -> _T:
         return cls
 
     return _f

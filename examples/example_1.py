@@ -20,10 +20,7 @@ class Bird(enum.Enum):
 #
 # The `uses_types` function is a trivial function to indicate types required at runtime
 # to your linter.
-#
-# TODO: remove pyright ignore when following is resolved:
-#   https://github.com/microsoft/pyright/issues/10417
-@argparcel.uses_types(pathlib.Path)  # pyright: ignore [reportArgumentType]
+@argparcel.uses_types(pathlib.Path)
 @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
 class _Args:
     # Using a `Literal` will force a choice between 1, 2, or 3.
