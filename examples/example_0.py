@@ -6,7 +6,7 @@ import argparcel
 
 
 @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
-class _Args:
+class Args:
     a: int
     b: float
 
@@ -19,4 +19,4 @@ class _Args:
 
 
 if __name__ == "__main__":
-    print(argparcel.parse(_Args))
+    print(argparcel.parse(Args))

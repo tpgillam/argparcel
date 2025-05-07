@@ -16,7 +16,7 @@ import argparcel
 
 
 @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
-class _Args:
+class Args:
     a: int
     b: float
 
@@ -29,7 +29,7 @@ class _Args:
 
 
 if __name__ == "__main__":
-    print(argparcel.parse(_Args))
+    print(argparcel.parse(Args))
 ```
 
 ```console
@@ -44,13 +44,13 @@ options:
   --d D
 
 $ uv run examples/example_0.py --a 2 --b 3.2 --c
-_Args(a=2, b=3.2, c=True, d=None)
+Args(a=2, b=3.2, c=True, d=None)
 
 $ uv run examples/example_0.py --a 2 --b 3.2 --no-c
-_Args(a=2, b=3.2, c=False, d=None)
+Args(a=2, b=3.2, c=False, d=None)
 
 $ uv run examples/example_0.py --a 2 --b 3.2 --no-c  --d moo
-_Args(a=2, b=3.2, c=False, d='moo')
+Args(a=2, b=3.2, c=False, d='moo')
 ```
 
 We also support:
@@ -74,7 +74,7 @@ class Bird(enum.Enum):
 
 
 @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
-class _Args:
+class Args:
     # Using a `Literal` will force a choice between 1, 2, or 3.
     a: Literal[1, 2, 3]
 
@@ -88,7 +88,7 @@ class _Args:
 
 
 if __name__ == "__main__":
-    print(argparcel.parse(_Args))
+    print(argparcel.parse(Args))
 ```
 
 ```console
@@ -102,8 +102,71 @@ options:
   --c C              An important path.
 
 $ uv run examples/example_1.py --a 2
-_Args(a=2, b=<Bird.puffin: 1>, c=None)
+Args(a=2, b=<Bird.puffin: 1>, c=None)
 
 $ uv run examples/example_1.py --a 2 --b lark --c /somewhere/to/go
-_Args(a=2, b=<Bird.lark: 2>, c=PosixPath('/somewhere/to/go'))
+Args(a=2, b=<Bird.lark: 2>, c=PosixPath('/somewhere/to/go'))
 ```
+
+## Pitfall: forward-references
+
+All types used in annotations _must_ be available at runtime.
+
+Specifically, when you call `argparcel.parse(Args)`, internally it relies upon
+`typings.get_type_hints(Args)` working. It will not work if any of the type annotations
+for fields in `Args` can't be resolved at runtime. 
+
+A plausible scenario for this to fail is when using forward references.
+
+Forward references are used when:
+- annotating with a string, or
+- you have `from future import __annotations__` in the module, or
+- you're using Python 3.14 or later.
+
+In any of these cases, a linter rule like [ruff's TC003](https://docs.astral.sh/ruff/rules/typing-only-standard-library-import/) may encourage you to move an import into a `TYPE_CHECKING`-guarded block, like so:
+
+```python
+from __future__ import annotations
+
+import dataclasses
+from typing import TYPE_CHECKING
+
+import argparcel
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+
+@dataclasses.dataclass
+class Args:
+    x: Path
+
+
+argparcel.parse(Args)  # Raises NameError
+```
+
+But if you run this, you'll get:
+```
+<...snip stack trace...>
+NameError: name 'Path' is not defined
+```
+
+### Solutions
+
+If you run into this issue, take your pick from the following solutions:
+
+1. Suppress your linter to permit the runtime import.
+2. Alternatively, use the `argparcel.uses_types` decorator when defining the dataclass:
+
+```python
+@argparcel.uses_types(Path)
+@dataclasses.dataclass
+class Args:
+    x: Path
+```
+
+This decorator is _only_ a convenience to allow the user to indicate to their linter
+that the type is required. There's no requirement to specify all types that the
+dataclass uses.
+
+3. Use your own contrivance to ensure that the types are referenced at runtime.
