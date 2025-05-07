@@ -272,7 +272,7 @@ def uses_types[T: type](*types: type) -> Callable[[T], T]:
     """
     del types
 
-    def f[_T: type](cls: _T, /) -> _T:
+    def f(cls: T, /) -> T:
         return cls
 
     return f
