@@ -256,3 +256,71 @@ options:
     )
 
     assert argparcel.parse(MooWithMethods, ["--a"]) == MooWithMethods(a=True)
+
+
+def test_empty_tuple() -> None:
+    # We don't support parsing empty tuple arguments.
+    @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
+    class _Moo:
+        x: tuple[()]
+
+    # FIXME: error message
+    with pytest.raises(ValueError, match="moo moo"):
+        argparcel.parse(_Moo, "--x")
+
+
+def test_tuple_one() -> None:
+    @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
+    class _Moo:
+        x: tuple[int]
+
+    raise NotImplementedError
+
+
+def test_tuple_two() -> None:
+    @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
+    class _Moo:
+        x: tuple[int, int]
+
+    raise NotImplementedError
+
+
+def test_tuple_three() -> None:
+    @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
+    class _Moo:
+        x: tuple[int, int, int]
+
+    raise NotImplementedError
+
+
+def test_tuple_three_hetero() -> None:
+    @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
+    class _Moo:
+        x: tuple[str, int, float]
+
+    # TODO: should we support heterogeneous tuples?
+    raise NotImplementedError
+
+
+def test_tuple_some_number() -> None:
+    @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
+    class _Moo:
+        x: tuple[int, ...]
+
+    raise NotImplementedError
+
+
+def test_tuple_some_number_literal() -> None:
+    @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
+    class _Moo:
+        x: tuple[Literal[1, 2, 3], ...]
+
+    raise NotImplementedError
+
+
+def test_tuple_at_least_one() -> None:
+    @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
+    class _Moo:
+        x: tuple[int, *tuple[int, ...]]
+
+    raise NotImplementedError
