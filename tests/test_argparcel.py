@@ -285,6 +285,22 @@ def test_tuple_two() -> None:
     raise NotImplementedError
 
 
+def test_tuple_two_optional() -> None:
+    @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
+    class _Moo:
+        x: tuple[int, int] = (2, 3)
+
+    raise NotImplementedError
+
+
+def test_tuple_two_nullable() -> None:
+    @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
+    class _Moo:
+        x: tuple[int, int] | None = None
+
+    raise NotImplementedError
+
+
 def test_tuple_three() -> None:
     @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
     class _Moo:
