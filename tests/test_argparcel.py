@@ -259,7 +259,17 @@ options:
 
 
 def _parse[T: _typeshed.DataclassInstance](cls: type[T], cmd: str, /) -> T:
-    return argparcel.parse(cls, cmd.split())
+    return argparcel.parse(cls, cmd.split(), exit_on_error=False)
+
+
+def test_unannotated_tuple() -> None:
+    # We can only parse a tuple if the element type is specified
+    @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
+    class _Moo:
+        x: tuple
+
+    with pytest.raises(ValueError, match="`tuple` must be annotated"):
+        _parse(_Moo, "--x 1")
 
 
 def test_empty_tuple() -> None:
