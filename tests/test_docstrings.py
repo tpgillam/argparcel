@@ -44,3 +44,24 @@ def test_get_field_docstrings() -> None:
     This continues over multiple lines.
     """
     }
+
+
+def test_get_field_docstrings_inline() -> None:
+    @dataclasses.dataclass
+    class Example3:
+        """Class docstring."""
+
+        """No-op string."""
+        a: int
+        # Line deliberately left blank
+        """Message a.
+
+        This continues over multiple lines.
+        """
+
+    assert get_field_docstrings(Example3) == {
+        "a": """Message a.
+
+    This continues over multiple lines.
+    """
+    }

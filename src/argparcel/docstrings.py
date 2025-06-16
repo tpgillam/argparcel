@@ -12,6 +12,7 @@ from __future__ import annotations
 import ast
 import inspect
 import itertools
+import textwrap
 import typing
 
 if typing.TYPE_CHECKING:
@@ -27,7 +28,7 @@ def get_field_docstrings(cls: type[_typeshed.DataclassInstance]) -> dict[str, st
     # Obtaining the source code might fail with an exception; we let that propagate up
     # to the user.
     source = inspect.getsource(cls)
-    tree = ast.parse(source)
+    tree = ast.parse(textwrap.dedent(source))
 
     # Find the class definition node; if it doesn't exist something is fundamentally
     # broken, so we are happy with an assert.
