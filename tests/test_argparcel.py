@@ -258,6 +258,10 @@ options:
     assert argparcel.parse(MooWithMethods, ["--a"]) == MooWithMethods(a=True)
 
 
+def _parse[T: _typeshed.DataclassInstance](cls: type[T], cmd: str, /) -> T:
+    return argparcel.parse(cls, cmd.split())
+
+
 def test_empty_tuple() -> None:
     # We don't support parsing empty tuple arguments.
     @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
@@ -266,7 +270,7 @@ def test_empty_tuple() -> None:
 
     # FIXME: error message
     with pytest.raises(ValueError, match="moo moo"):
-        argparcel.parse(_Moo, "--x")
+        _parse(_Moo, "--x")
 
 
 def test_tuple_one() -> None:
@@ -274,7 +278,17 @@ def test_tuple_one() -> None:
     class _Moo:
         x: tuple[int]
 
-    raise NotImplementedError
+    assert _parse(_Moo, "--x 1") == (1,)
+    assert _parse(_Moo, "--x 42") == (42,)
+    # FIXME: what exception?
+    with pytest.raises():
+        _parse(_Moo, "--x")
+    with pytest.raises():
+        _parse(_Moo, "--x 1 2")
+    with pytest.raises():
+        _parse(_Moo, "--x foo")
+    with pytest.raises():
+        _parse(_Moo, "--x 2.1")
 
 
 def test_tuple_two() -> None:
@@ -282,7 +296,15 @@ def test_tuple_two() -> None:
     class _Moo:
         x: tuple[int, int]
 
-    raise NotImplementedError
+    assert _parse(_Moo, "--x 1 2") == (1, 2)
+    assert _parse(_Moo, "--x 42 -102") == (42, -102)
+    # FIXME: what exception?
+    with pytest.raises():
+        _parse(_Moo, "--x")
+    with pytest.raises():
+        _parse(_Moo, "--x 1")
+    with pytest.raises():
+        _parse(_Moo, "--x 1 3 4")
 
 
 def test_tuple_two_optional() -> None:
@@ -290,7 +312,13 @@ def test_tuple_two_optional() -> None:
     class _Moo:
         x: tuple[int, int] = (2, 3)
 
-    raise NotImplementedError
+    assert _parse(_Moo, "") == (2, 3)
+    assert _parse(_Moo, "--x 1 2") == (1, 2)
+    assert _parse(_Moo, "--x 42 -102") == (42, -102)
+
+    # FIXME: what exception?
+    with pytest.raises():
+        _parse(_Moo, "--x 1")
 
 
 def test_tuple_two_nullable() -> None:
@@ -298,7 +326,9 @@ def test_tuple_two_nullable() -> None:
     class _Moo:
         x: tuple[int, int] | None = None
 
-    raise NotImplementedError
+    assert _parse(_Moo, "") is None
+    assert _parse(_Moo, "--x 1 2") == (1, 2)
+    assert _parse(_Moo, "--x 42 -102") == (42, -102)
 
 
 def test_tuple_three() -> None:
@@ -306,7 +336,8 @@ def test_tuple_three() -> None:
     class _Moo:
         x: tuple[int, int, int]
 
-    raise NotImplementedError
+    assert _parse(_Moo, "--x 1 2 3") == (1, 2, 3)
+    assert _parse(_Moo, "--x 42 -102 0") == (42, -102, 0)
 
 
 def test_tuple_three_hetero() -> None:
@@ -323,7 +354,13 @@ def test_tuple_some_number() -> None:
     class _Moo:
         x: tuple[int, ...]
 
-    raise NotImplementedError
+    # FIXME: should this be allowed?
+    assert _parse(_Moo, "--x") == ()
+
+    assert _parse(_Moo, "--x 1") == (1,)
+    assert _parse(_Moo, "--x 1 2") == (1, 2)
+    assert _parse(_Moo, "--x 1 2 3") == (1, 2, 3)
+    assert _parse(_Moo, "--x 1 2 3 -4") == (1, 2, 3, -4)
 
 
 def test_tuple_some_number_literal() -> None:
@@ -331,12 +368,29 @@ def test_tuple_some_number_literal() -> None:
     class _Moo:
         x: tuple[Literal[1, 2, 3], ...]
 
-    raise NotImplementedError
+    # FIXME: should this be allowed?
+    assert _parse(_Moo, "--x") == ()
+    assert _parse(_Moo, "--x 1") == (1,)
+    assert _parse(_Moo, "--x 1 2") == (1, 2)
+    assert _parse(_Moo, "--x 1 2 3") == (1, 2, 3)
+    assert _parse(_Moo, "--x 1 2 3 1") == (1, 2, 3, 1)
+
+    # FIXME: what exception?
+    with pytest.raises():
+        _parse(_Moo, "--x 1 2 3 4")
 
 
-def test_tuple_at_least_one() -> None:
+def test_tuple_at_least_two() -> None:
     @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
     class _Moo:
-        x: tuple[int, *tuple[int, ...]]
+        x: tuple[int, int, *tuple[int, ...]]
 
-    raise NotImplementedError
+    assert _parse(_Moo, "--x 1 2") == (1, 2)
+    assert _parse(_Moo, "--x 1 2 3") == (1, 2, 3)
+    assert _parse(_Moo, "--x 1 2 3 1") == (1, 2, 3, 1)
+
+    # FIXME: what exception?
+    with pytest.raises():
+        _parse(_Moo, "--x 1")
+    with pytest.raises():
+        _parse(_Moo, "--x 1 2 3 4")
