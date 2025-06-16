@@ -256,3 +256,151 @@ options:
     )
 
     assert argparcel.parse(MooWithMethods, ["--a"]) == MooWithMethods(a=True)
+
+
+def _parse[T: _typeshed.DataclassInstance](cls: type[T], cmd: str, /) -> T:
+    return argparcel.parse(cls, cmd.split(), exit_on_error=False)
+
+
+def test_unannotated_tuple() -> None:
+    # We can only parse a tuple if the element type is specified
+    @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
+    class _Moo:
+        x: tuple
+
+    with pytest.raises(ValueError, match="`tuple` must be annotated"):
+        _parse(_Moo, "--x 1")
+
+
+def test_empty_tuple() -> None:
+    # We don't support parsing empty tuple arguments.
+    @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
+    class _Moo:
+        x: tuple[()]
+
+    # FIXME: error message
+    with pytest.raises(ValueError, match="moo moo"):
+        _parse(_Moo, "--x")
+
+
+def test_tuple_one() -> None:
+    @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
+    class _Moo:
+        x: tuple[int]
+
+    assert _parse(_Moo, "--x 1") == (1,)
+    assert _parse(_Moo, "--x 42") == (42,)
+    # FIXME: what exception?
+    with pytest.raises():
+        _parse(_Moo, "--x")
+    with pytest.raises():
+        _parse(_Moo, "--x 1 2")
+    with pytest.raises():
+        _parse(_Moo, "--x foo")
+    with pytest.raises():
+        _parse(_Moo, "--x 2.1")
+
+
+def test_tuple_two() -> None:
+    @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
+    class _Moo:
+        x: tuple[int, int]
+
+    assert _parse(_Moo, "--x 1 2") == (1, 2)
+    assert _parse(_Moo, "--x 42 -102") == (42, -102)
+    # FIXME: what exception?
+    with pytest.raises():
+        _parse(_Moo, "--x")
+    with pytest.raises():
+        _parse(_Moo, "--x 1")
+    with pytest.raises():
+        _parse(_Moo, "--x 1 3 4")
+
+
+def test_tuple_two_optional() -> None:
+    @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
+    class _Moo:
+        x: tuple[int, int] = (2, 3)
+
+    assert _parse(_Moo, "") == (2, 3)
+    assert _parse(_Moo, "--x 1 2") == (1, 2)
+    assert _parse(_Moo, "--x 42 -102") == (42, -102)
+
+    # FIXME: what exception?
+    with pytest.raises():
+        _parse(_Moo, "--x 1")
+
+
+def test_tuple_two_nullable() -> None:
+    @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
+    class _Moo:
+        x: tuple[int, int] | None = None
+
+    assert _parse(_Moo, "") is None
+    assert _parse(_Moo, "--x 1 2") == (1, 2)
+    assert _parse(_Moo, "--x 42 -102") == (42, -102)
+
+
+def test_tuple_three() -> None:
+    @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
+    class _Moo:
+        x: tuple[int, int, int]
+
+    assert _parse(_Moo, "--x 1 2 3") == (1, 2, 3)
+    assert _parse(_Moo, "--x 42 -102 0") == (42, -102, 0)
+
+
+def test_tuple_three_hetero() -> None:
+    @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
+    class _Moo:
+        x: tuple[str, int, float]
+
+    # TODO: should we support heterogeneous tuples?
+    raise NotImplementedError
+
+
+def test_tuple_some_number() -> None:
+    @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
+    class _Moo:
+        x: tuple[int, ...]
+
+    # FIXME: should this be allowed?
+    assert _parse(_Moo, "--x") == ()
+
+    assert _parse(_Moo, "--x 1") == (1,)
+    assert _parse(_Moo, "--x 1 2") == (1, 2)
+    assert _parse(_Moo, "--x 1 2 3") == (1, 2, 3)
+    assert _parse(_Moo, "--x 1 2 3 -4") == (1, 2, 3, -4)
+
+
+def test_tuple_some_number_literal() -> None:
+    @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
+    class _Moo:
+        x: tuple[Literal[1, 2, 3], ...]
+
+    # FIXME: should this be allowed?
+    assert _parse(_Moo, "--x") == ()
+    assert _parse(_Moo, "--x 1") == (1,)
+    assert _parse(_Moo, "--x 1 2") == (1, 2)
+    assert _parse(_Moo, "--x 1 2 3") == (1, 2, 3)
+    assert _parse(_Moo, "--x 1 2 3 1") == (1, 2, 3, 1)
+
+    # FIXME: what exception?
+    with pytest.raises():
+        _parse(_Moo, "--x 1 2 3 4")
+
+
+def test_tuple_at_least_two() -> None:
+    @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
+    class _Moo:
+        x: tuple[int, int, *tuple[int, ...]]
+
+    assert _parse(_Moo, "--x 1 2") == (1, 2)
+    assert _parse(_Moo, "--x 1 2 3") == (1, 2, 3)
+    assert _parse(_Moo, "--x 1 2 3 1") == (1, 2, 3, 1)
+
+    # FIXME: what exception?
+    with pytest.raises():
+        _parse(_Moo, "--x 1")
+    with pytest.raises():
+        _parse(_Moo, "--x 1 2 3 4")
