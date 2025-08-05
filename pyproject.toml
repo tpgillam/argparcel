@@ -26,7 +26,7 @@ dev = ["pyright==1.1.400", "pytest>=8.3.5", "ruff==0.11.8"]
 
 
 [tool.pytest.ini_options]
-addopts = "--tb=short --capture=no --strict-config"
+addopts = "--tb=short --strict-config"
 testpaths = ["tests"]
 
 
