@@ -318,3 +318,18 @@ def test_list_int_or_none() -> None:
     assert _parse(_Moo, "--x").x == []
     assert _parse(_Moo, "--x 1").x == [1]
     assert _parse(_Moo, "--x 1 2").x == [1, 2]
+
+
+def test_list_path() -> None:
+    @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
+    class _Moo:
+        x: list[pathlib.Path]
+
+    assert _parse(_Moo, "--x").x == []
+    assert _parse(_Moo, "--x a").x == [pathlib.Path("a")]
+    assert _parse(_Moo, "--x a/b c").x == [pathlib.Path("a", "b"), pathlib.Path("c")]
+    assert _parse(_Moo, "--x a/b c /d/e/f").x == [
+        pathlib.Path("a", "b"),
+        pathlib.Path("c"),
+        pathlib.Path("/d", "e", "f"),
+    ]
