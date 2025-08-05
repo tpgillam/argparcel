@@ -34,6 +34,9 @@ class Args:
     c: pathlib.Path | None = None
     """An important path."""
 
+    # A list will introduce a flag that consumes zero or more elements.
+    d: list[float] | None = None
+
 
 if __name__ == "__main__":
     print(argparcel.parse(Args))

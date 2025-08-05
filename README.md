@@ -56,6 +56,7 @@ Args(a=2, b=3.2, c=False, d='moo')
 We also support:
 - `Literal` and `Enum`s forcing specific choices
 - conversion to types whose `__init__` accepts a string, e.g. `pathlib.Path`
+- annotated lists, e.g. `list[int]` or `list[pathlib.Path]`
 - 'help' can be provided too
 
 ```python
@@ -86,6 +87,9 @@ class Args:
     c: pathlib.Path | None = None
     """An important path."""
 
+    # A list will introduce a flag that consumes zero or more elements.
+    d: list[float] | None = None
+
 
 if __name__ == "__main__":
     print(argparcel.parse(Args))
@@ -93,19 +97,24 @@ if __name__ == "__main__":
 
 ```console
 $ uv run examples/example_1.py --help
-usage: example_1.py [-h] --a {1,2,3} [--b {puffin,lark}] [--c C]
+usage: example_1.py [-h] --a {1,2,3} [--b {puffin,lark}] [--c C] [--d [D ...]]
 
 options:
   -h, --help         show this help message and exit
   --a {1,2,3}
   --b {puffin,lark}
   --c C              An important path.
+  --d [D ...]
+
 
 $ uv run examples/example_1.py --a 2
-Args(a=2, b=<Bird.puffin: 1>, c=None)
+Args(a=2, b=<Bird.puffin: 1>, c=None, d=None)
 
 $ uv run examples/example_1.py --a 2 --b lark --c /somewhere/to/go
-Args(a=2, b=<Bird.lark: 2>, c=PosixPath('/somewhere/to/go'))
+Args(a=2, b=<Bird.lark: 2>, c=PosixPath('/somewhere/to/go'), d=None)
+
+$ uv run examples/example_1.py --a 2 --b lark --d 1.0 2.0 3.0
+Args(a=2, b=<Bird.lark: 2>, c=None, d=[1.0, 2.0, 3.0])
 ```
 
 ## Pitfall: forward-references
