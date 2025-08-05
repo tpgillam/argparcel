@@ -256,3 +256,44 @@ options:
     )
 
     assert argparcel.parse(MooWithMethods, ["--a"]) == MooWithMethods(a=True)
+
+
+def _parse[T: _typeshed.DataclassInstance](cls: type[T], cmd: str, /) -> T:
+    return argparcel.parse(cls, cmd.split(), exit_on_error=False)
+
+
+def test_unannotated_list() -> None:
+    # We can only parse a list if the element type is specified
+    @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
+    class _Moo:
+        x: list
+
+    with pytest.raises(ValueError, match="`list` must be subscripted"):
+        _parse(_Moo, "--x 1")
+
+
+def test_list_str() -> None:
+    @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
+    class _Moo:
+        x: list[str]
+        y: bool = False
+
+    assert _parse(_Moo, "--x").x == []
+    assert _parse(_Moo, "--x 1").x == ["1"]
+    assert _parse(_Moo, "--x 1 two").x == ["1", "two"]
+    assert _parse(_Moo, "--x 1 two --y").x == ["1", "two"]
+
+
+def test_list_int() -> None:
+    @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
+    class _Moo:
+        x: list[int]
+        y: bool = False
+
+    assert _parse(_Moo, "--x").x == []
+    assert _parse(_Moo, "--x 1").x == [1]
+    assert _parse(_Moo, "--x 1 2").x == [1, 2]
+    assert _parse(_Moo, "--x 1 2 --y").x == [1, 2]
+
+    # FIXME: add test for failure case
+
