@@ -176,7 +176,7 @@ def _add_argument_from_field(  # noqa: C901
             if len(args) != 1:
                 msg = f"Malformed list: {base_type}"
             (element_type,) = args
-            # TODO: providing a list-as-default here would be bad because mutable.
+            # NOTE: providing a list-as-default here would be bad because mutable.
             #   This is currently prevented by dataclasses preventing assigning mutable
             #   defaults, so for now we don't try to handle this specially.
             _add_argument(
