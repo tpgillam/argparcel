@@ -282,6 +282,13 @@ def test_list_str() -> None:
     assert _parse(_Moo, "--x 1").x == ["1"]
     assert _parse(_Moo, "--x 1 two").x == ["1", "two"]
     assert _parse(_Moo, "--x 1 two --y").x == ["1", "two"]
+    assert """[-h] --x [X ...] [--y | --no-y]
+
+options:
+  -h, --help   show this help message and exit
+  --x [X ...]
+  --y, --no-y
+""" in _get_help_text(_Moo)
 
 
 def test_list_int() -> None:
@@ -297,6 +304,9 @@ def test_list_int() -> None:
 
     with pytest.raises(argparse.ArgumentError, match="invalid int value: 'three'"):
         assert _parse(_Moo, "--x 1 2 three")
+
+    with pytest.raises(argparse.ArgumentError, match="invalid int value: '3.0'"):
+        assert _parse(_Moo, "--x 1 2 3.0")
 
 
 def test_list_int_or_none() -> None:
