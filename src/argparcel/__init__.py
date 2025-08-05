@@ -117,7 +117,7 @@ def _add_argument_choices[T](
     )
 
 
-def _add_argument_from_field(
+def _add_argument_from_field(  # noqa: C901
     parser: argparse.ArgumentParser,
     field: dataclasses.Field,
     name_to_type: Mapping[str, object],
