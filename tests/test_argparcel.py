@@ -295,5 +295,16 @@ def test_list_int() -> None:
     assert _parse(_Moo, "--x 1 2").x == [1, 2]
     assert _parse(_Moo, "--x 1 2 --y").x == [1, 2]
 
-    # FIXME: add test for failure case
+    with pytest.raises(argparse.ArgumentError, match="invalid int value: 'three'"):
+        assert _parse(_Moo, "--x 1 2 three")
 
+
+def test_list_int_or_none() -> None:
+    @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
+    class _Moo:
+        x: list[int] | None = None
+
+    assert _parse(_Moo, "").x is None
+    assert _parse(_Moo, "--x").x == []
+    assert _parse(_Moo, "--x 1").x == [1]
+    assert _parse(_Moo, "--x 1 2").x == [1, 2]
