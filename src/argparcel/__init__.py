@@ -176,9 +176,9 @@ def _add_argument_from_field(
             if len(args) != 1:
                 msg = f"Malformed list: {base_type}"
             (element_type,) = args
-            # FIXME: providing a list-as-default here would be very bad because mutable.
-            #   Prevent that. But also we should allow the case of
-            #   `list[int] | None = None`
+            # TODO: providing a list-as-default here would be bad because mutable.
+            #   This is currently prevented by dataclasses preventing assigning mutable
+            #   defaults, so for now we don't try to handle this specially.
             _add_argument(
                 parser,
                 name=arg_name,
