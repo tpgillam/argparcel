@@ -175,6 +175,7 @@ def _add_argument_from_field(  # noqa: C901
             args = typing.get_args(base_type)
             if len(args) != 1:
                 msg = f"Malformed list: {base_type}"
+                raise ValueError(msg)
             (element_type,) = args
             # NOTE: providing a list-as-default here would be bad because mutable.
             #   This is currently prevented by dataclasses preventing assigning mutable
