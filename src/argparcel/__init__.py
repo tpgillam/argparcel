@@ -23,6 +23,7 @@ def _ensure_field_type(
     type
     | enum.EnumType
     | types.UnionType
+    | types.GenericAlias
     | typing._UnionGenericAlias  # pyright: ignore [reportAttributeAccessIssue]
     | typing._LiteralGenericAlias  # pyright: ignore [reportAttributeAccessIssue]
 ):
@@ -30,6 +31,7 @@ def _ensure_field_type(
         type,
         enum.EnumType,
         types.UnionType,
+        types.GenericAlias,
         typing._UnionGenericAlias,  # pyright: ignore [reportAttributeAccessIssue]  # noqa: SLF001
         typing._LiteralGenericAlias,  # pyright: ignore [reportAttributeAccessIssue]  # noqa: SLF001
     ):
@@ -55,6 +57,7 @@ def _add_argument(
     choices: Sequence | _Unspecified = _UNSPECIFIED,
     type_: object = _UNSPECIFIED,
     action: type[argparse.Action] | _Unspecified = _UNSPECIFIED,
+    nargs: int | typing.Literal["?", "+", "*"] | None | _Unspecified = _UNSPECIFIED,
 ) -> argparse.Action:
     # Build up common arguments for `parser.add_argument` into this dictionary. This is
     # the easiest way for us to avoid passing in arguments that should be unspecified.
@@ -67,6 +70,8 @@ def _add_argument(
         kwargs["type"] = type_
     if action is not _UNSPECIFIED:
         kwargs["action"] = action
+    if nargs is not _UNSPECIFIED:
+        kwargs["nargs"] = nargs
 
     return parser.add_argument(name, help=help_, required=required, **kwargs)
 
@@ -112,7 +117,7 @@ def _add_argument_choices[T](
     )
 
 
-def _add_argument_from_field(
+def _add_argument_from_field(  # noqa: C901
     parser: argparse.ArgumentParser,
     field: dataclasses.Field,
     name_to_type: Mapping[str, object],
@@ -164,6 +169,31 @@ def _add_argument_from_field(
         )
         return _UNSPECIFIED
 
+    if isinstance(base_type, types.GenericAlias):
+        origin = typing.get_origin(base_type)
+        if origin is list:
+            args = typing.get_args(base_type)
+            if len(args) != 1:
+                msg = f"Malformed list: {base_type}"
+                raise ValueError(msg)
+            (element_type,) = args
+            # NOTE: providing a list-as-default here would be bad because mutable.
+            #   This is currently prevented by dataclasses preventing assigning mutable
+            #   defaults, so for now we don't try to handle this specially.
+            _add_argument(
+                parser,
+                name=arg_name,
+                help_=help_,
+                required=required,
+                default=default,
+                type_=element_type,
+                nargs="*",
+            )
+            return _UNSPECIFIED
+
+        msg = f"Unsupported GenericAlias: {base_type}"
+        raise ValueError(msg)
+
     if isinstance(base_type, typing._LiteralGenericAlias):  # pyright: ignore [reportAttributeAccessIssue]  # noqa: SLF001
         # Represent literal arguments with choices.
         _add_argument_choices(
@@ -214,6 +244,11 @@ def _add_argument_from_field(
             return getattr(base_type, value)
 
         return _lookup_enum_element
+
+    # Catch types that are not supported properly, and are probably accidental omissions
+    if base_type is list:
+        msg = "`list` must be subscripted; please use e.g. 'list[int]'"
+        raise ValueError(msg)
 
     _add_argument(
         parser,
