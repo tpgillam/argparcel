@@ -42,7 +42,7 @@ jobs:
       # Required for trusted publishing; see https://docs.pypi.org/trusted-publishers/using-a-publisher/
       id-token: write  
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         with:
           path: dist
           merge-multiple: true
