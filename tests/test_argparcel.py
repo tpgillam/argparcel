@@ -6,6 +6,7 @@ import dataclasses
 import enum
 import io
 import pathlib
+import re
 from typing import TYPE_CHECKING, Literal
 
 import pytest
@@ -80,6 +81,14 @@ def test_literals() -> None:
         MooLiteral,
         ["--optional-choice", "1", "--choice", "foo", "--defaulted-choice", "a"],
     ) == MooLiteral(optional_choice=1, choice="foo", defaulted_choice="a")
+
+    with pytest.raises(
+        argparse.ArgumentError,
+        match=re.escape(
+            "argument --choice: invalid choice: 'moo' (choose from foo, bar)"
+        ),
+    ):
+        _parse(MooLiteral, "--choice moo")
 
 
 class Thingy(enum.Enum):
@@ -333,3 +342,46 @@ def test_list_path() -> None:
         pathlib.Path("c"),
         pathlib.Path("/d", "e", "f"),
     ]
+
+
+def test_list_enum() -> None:
+    @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
+    class _Moo:
+        x: list[Thingy]
+
+    assert _parse(_Moo, "--x").x == []
+    assert _parse(_Moo, "--x a").x == [Thingy.a]
+    assert _parse(_Moo, "--x a a").x == [Thingy.a, Thingy.a]
+    assert _parse(_Moo, "--x a b a").x == [Thingy.a, Thingy.b, Thingy.a]
+
+    with pytest.raises(
+        argparse.ArgumentError,
+        match=re.escape("argument --x: invalid choice: 'c' (choose from a, b)"),
+    ):
+        assert _parse(_Moo, "--x a b c")
+
+
+def test_list_literal() -> None:
+    @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
+    class _Moo:
+        x: list[Literal["a", "b"]]
+
+    assert _parse(_Moo, "--x").x == []
+    assert _parse(_Moo, "--x a").x == ["a"]
+    assert _parse(_Moo, "--x a a").x == ["a", "a"]
+    assert _parse(_Moo, "--x a b a").x == ["a", "b", "a"]
+
+    with pytest.raises(
+        argparse.ArgumentError,
+        match=re.escape("argument --x: invalid choice: 'c' (choose from a, b)"),
+    ):
+        assert _parse(_Moo, "--x a b c")
+
+
+def test_list_literal_heterogeneous() -> None:
+    @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
+    class _Moo:
+        x: list[Literal["a", "b", 1]]
+
+    with pytest.raises(ValueError, match="Need exactly one type of choice"):
+        assert _parse(_Moo, "--x")

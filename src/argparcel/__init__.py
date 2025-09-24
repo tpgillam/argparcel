@@ -86,13 +86,14 @@ def _add_argument_choices[T](
     choices: Sequence[T],
     field_type: enum.EnumType | typing._LiteralGenericAlias,  # pyright: ignore [reportAttributeAccessIssue]
     field_name: str,
-    type_: object = _UNSPECIFIED,
+    choice_type: object = _UNSPECIFIED,
+    nargs: int | typing.Literal["?", "+", "*"] | None | _Unspecified = _UNSPECIFIED,
 ) -> argparse.Action:
     if len(choices) == 0:
         msg = f"Need at least one choice for field '{field_name}' of type {field_type}"
         raise ValueError(msg)
 
-    if type_ is _UNSPECIFIED:
+    if choice_type is _UNSPECIFIED:
         choice_types = {type(x) for x in choices}
         # We enforce that all choices MUST all be of the same type, so that we can
         # convert them simply and unambiguously (e.g. `Literal[42, "42"]` could cause
@@ -104,20 +105,106 @@ def _add_argument_choices[T](
             )
             raise ValueError(msg)
 
-        (type_,) = choice_types
+        (choice_type,) = choice_types
 
     return _add_argument(
         parser,
         name=name,
-        type_=type_,
+        type_=choice_type,
         choices=choices,
         help_=help_,
         required=required,
         default=default,
+        nargs=nargs,
     )
 
 
-def _add_argument_from_field(  # noqa: C901
+def _add_argument_literal(
+    parser: argparse.ArgumentParser,
+    *,
+    name: str,
+    help_: str | None,
+    required: bool,
+    default: object,
+    field_type: typing._LiteralGenericAlias,  # pyright: ignore [reportAttributeAccessIssue]
+    field_name: str,
+    nargs: int | typing.Literal["?", "+", "*"] | None | _Unspecified = _UNSPECIFIED,
+) -> _Unspecified:
+    # Represent literal arguments with choices.
+    _add_argument_choices(
+        parser,
+        name=name,
+        choices=typing.get_args(field_type),
+        help_=help_,
+        required=required,
+        default=default,
+        field_type=field_type,
+        field_name=field_name,
+        nargs=nargs,
+    )
+    return _UNSPECIFIED
+
+
+def _add_argument_enum[T: enum.Enum](
+    parser: argparse.ArgumentParser,
+    *,
+    name: str,
+    help_: str | None,
+    required: bool,
+    default: T | None | _Unspecified,
+    field_type: type[T],
+    field_name: str,
+    nargs: typing.Literal["+", "*"] | None | _Unspecified = _UNSPECIFIED,
+) -> Callable[[typing.Any], typing.Any]:
+    # Enums are a bit awkward. We handle them in two stages:
+    #   1. Let argparse treat them as a set of string choices, corresponding to the
+    #       name of each enum element. Note that we also need to modify any default
+    #       value to be consistent with this approach.
+    #   2. Convert back to an enum element prior to populating the dataclass.
+    #
+    # Telling argparse about the enum directly is awkward, as discussed in:
+    #   https://github.com/tpgillam/argparcel/issues/2
+    enum_element_names: tuple[str, ...] = tuple(
+        x.name  # pyright: ignore[reportAttributeAccessIssue]
+        for x in field_type
+    )
+    _add_argument_choices(
+        parser,
+        name=name,
+        choice_type=str,
+        choices=enum_element_names,  # Sequence of elements.
+        help_=help_,
+        required=required,
+        default=(
+            default
+            if isinstance(default, _Unspecified | types.NoneType)
+            else default.name
+        ),
+        field_type=field_type,
+        field_name=field_name,
+        nargs=nargs,
+    )
+
+    match nargs:
+        case None | _Unspecified():
+
+            def _lookup_enum_element(value: str | None) -> enum.EnumType | None:
+                if value is None:
+                    # Argument wasn't specified, so no conversion to do.
+                    return None
+                return getattr(field_type, value)
+
+            return _lookup_enum_element
+
+        case "+" | "*":
+
+            def _lookup_enum_elements(value: list[str]) -> list[enum.EnumType]:
+                return [getattr(field_type, x) for x in value]
+
+            return _lookup_enum_elements
+
+
+def _add_argument_from_field(  # noqa: C901, PLR0911, PLR0912
     parser: argparse.ArgumentParser,
     field: dataclasses.Field,
     name_to_type: Mapping[str, object],
@@ -180,6 +267,32 @@ def _add_argument_from_field(  # noqa: C901
             # NOTE: providing a list-as-default here would be bad because mutable.
             #   This is currently prevented by dataclasses preventing assigning mutable
             #   defaults, so for now we don't try to handle this specially.
+
+            if isinstance(element_type, typing._LiteralGenericAlias):  # pyright: ignore [reportAttributeAccessIssue]  # noqa: SLF001
+                return _add_argument_literal(
+                    parser,
+                    name=arg_name,
+                    help_=help_,
+                    required=required,
+                    default=default,
+                    field_type=element_type,
+                    field_name=field.name,
+                    nargs="*",
+                )
+
+            if isinstance(element_type, enum.EnumType):
+                assert issubclass(element_type, enum.Enum)
+                return _add_argument_enum(
+                    parser,
+                    name=arg_name,
+                    help_=help_,
+                    required=required,
+                    default=default,
+                    field_type=element_type,
+                    field_name=field.name,
+                    nargs="*",
+                )
+
             _add_argument(
                 parser,
                 name=arg_name,
@@ -195,55 +308,27 @@ def _add_argument_from_field(  # noqa: C901
         raise ValueError(msg)
 
     if isinstance(base_type, typing._LiteralGenericAlias):  # pyright: ignore [reportAttributeAccessIssue]  # noqa: SLF001
-        # Represent literal arguments with choices.
-        _add_argument_choices(
+        return _add_argument_literal(
             parser,
             name=arg_name,
-            choices=typing.get_args(base_type),
             help_=help_,
             required=required,
             default=default,
-            field_type=field.type,
+            field_type=base_type,
             field_name=field.name,
         )
-        return _UNSPECIFIED
 
     if isinstance(base_type, enum.EnumType):
-        # Enums are a bit awkward. We handle them in two stages:
-        #   1. Let argparse treat them as a set of string choices, corresponding to the
-        #       name of each enum element. Note that we also need to modify any default
-        #       value to be consistent with this approach.
-        #   2. Convert back to an enum element prior to populating the dataclass.
-        #
-        # Telling argparse about the enum directly is awkward, as discussed in:
-        #   https://github.com/tpgillam/argparcel/issues/2
-        enum_element_names: tuple[str, ...] = tuple(
-            x.name  # pyright: ignore[reportAttributeAccessIssue]
-            for x in base_type
-        )
-        _add_argument_choices(
+        assert issubclass(base_type, enum.Enum)
+        return _add_argument_enum(
             parser,
             name=arg_name,
-            type_=str,
-            choices=enum_element_names,  # Sequence of elements.
             help_=help_,
             required=required,
-            default=(
-                default
-                if isinstance(default, _Unspecified | types.NoneType)
-                else default.name
-            ),
-            field_type=field.type,
+            default=default,
+            field_type=base_type,
             field_name=field.name,
         )
-
-        def _lookup_enum_element(value: str | None) -> enum.EnumType | None:
-            if value is None:
-                # Argument wasn't specified, so no conversion to do.
-                return None
-            return getattr(base_type, value)
-
-        return _lookup_enum_element
 
     # Catch types that are not supported properly, and are probably accidental omissions
     if base_type is list:
