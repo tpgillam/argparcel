@@ -275,7 +275,7 @@ def test_unannotated_list() -> None:
     # We can only parse a list if the element type is specified
     @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
     class _Moo:
-        x: list
+        x: list  # pyright: ignore [reportMissingTypeArgument]
 
     with pytest.raises(ValueError, match="`list` must be subscripted"):
         _parse(_Moo, "--x 1")
@@ -314,7 +314,9 @@ def test_list_int() -> None:
     with pytest.raises(argparse.ArgumentError, match="invalid int value: 'three'"):
         assert _parse(_Moo, "--x 1 2 three")
 
-    with pytest.raises(argparse.ArgumentError, match="invalid int value: '3.0'"):
+    with pytest.raises(
+        argparse.ArgumentError, match=re.escape("invalid int value: '3.0'")
+    ):
         assert _parse(_Moo, "--x 1 2 3.0")
 
 
@@ -360,6 +362,13 @@ def test_list_enum() -> None:
     ):
         assert _parse(_Moo, "--x a b c")
 
+    assert """[-h] --x [{a,b} ...]
+
+options:
+  -h, --help       show this help message and exit
+  --x [{a,b} ...]
+""" in _get_help_text(_Moo)
+
 
 def test_list_literal() -> None:
     @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
@@ -376,6 +385,13 @@ def test_list_literal() -> None:
         match=re.escape("argument --x: invalid choice: 'c' (choose from a, b)"),
     ):
         assert _parse(_Moo, "--x a b c")
+
+    assert """[-h] --x [{a,b} ...]
+
+options:
+  -h, --help       show this help message and exit
+  --x [{a,b} ...]
+""" in _get_help_text(_Moo)
 
 
 def test_list_literal_heterogeneous() -> None:
