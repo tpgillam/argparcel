@@ -360,6 +360,13 @@ def test_list_enum() -> None:
     ):
         assert _parse(_Moo, "--x a b c")
 
+    assert """[-h] --x [{a,b} ...]
+
+options:
+  -h, --help       show this help message and exit
+  --x [{a,b} ...]
+""" in _get_help_text(_Moo)
+
 
 def test_list_literal() -> None:
     @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
@@ -376,6 +383,13 @@ def test_list_literal() -> None:
         match=re.escape("argument --x: invalid choice: 'c' (choose from a, b)"),
     ):
         assert _parse(_Moo, "--x a b c")
+
+    assert """[-h] --x [{a,b} ...]
+
+options:
+  -h, --help       show this help message and exit
+  --x [{a,b} ...]
+""" in _get_help_text(_Moo)
 
 
 def test_list_literal_heterogeneous() -> None:
