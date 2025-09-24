@@ -17,6 +17,10 @@ if typing.TYPE_CHECKING:
 __all__ = ["parse", "uses_types"]
 
 
+_LiteralGenericAlias = type(typing.Literal[1])
+_UnionGenericAlias = type(typing.Union[int, bool])  # noqa: UP007
+
+
 def _ensure_field_type(
     name: str, type_: object
 ) -> (
@@ -32,8 +36,8 @@ def _ensure_field_type(
         enum.EnumType,
         types.UnionType,
         types.GenericAlias,
-        typing._UnionGenericAlias,  # pyright: ignore [reportAttributeAccessIssue]  # noqa: SLF001
-        typing._LiteralGenericAlias,  # pyright: ignore [reportAttributeAccessIssue]  # noqa: SLF001
+        _UnionGenericAlias,  # pyright: ignore [reportAttributeAccessIssue]
+        _LiteralGenericAlias,  # pyright: ignore [reportAttributeAccessIssue]
     ):
         msg = f"Unsupported type for field '{name}': {type_}  (of type {type(type_)})"
         raise ValueError(msg)
@@ -227,7 +231,7 @@ def _add_argument_from_field(  # noqa: C901, PLR0911, PLR0912
 
     if isinstance(
         field_type,
-        types.UnionType | typing._UnionGenericAlias,  # pyright: ignore [reportAttributeAccessIssue]  # noqa: SLF001
+        (types.UnionType, _UnionGenericAlias),  # pyright: ignore [reportAttributeAccessIssue]
     ):
         non_none_types = tuple(
             x for x in typing.get_args(field_type) if x is not types.NoneType
@@ -268,7 +272,7 @@ def _add_argument_from_field(  # noqa: C901, PLR0911, PLR0912
             #   This is currently prevented by dataclasses preventing assigning mutable
             #   defaults, so for now we don't try to handle this specially.
 
-            if isinstance(element_type, typing._LiteralGenericAlias):  # pyright: ignore [reportAttributeAccessIssue]  # noqa: SLF001
+            if isinstance(element_type, _LiteralGenericAlias):  # pyright: ignore [reportAttributeAccessIssue]
                 return _add_argument_literal(
                     parser,
                     name=arg_name,
@@ -307,7 +311,7 @@ def _add_argument_from_field(  # noqa: C901, PLR0911, PLR0912
         msg = f"Unsupported GenericAlias: {base_type}"
         raise ValueError(msg)
 
-    if isinstance(base_type, typing._LiteralGenericAlias):  # pyright: ignore [reportAttributeAccessIssue]  # noqa: SLF001
+    if isinstance(base_type, _LiteralGenericAlias):  # pyright: ignore [reportAttributeAccessIssue]
         return _add_argument_literal(
             parser,
             name=arg_name,
