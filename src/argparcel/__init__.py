@@ -86,14 +86,14 @@ def _add_argument_choices[T](
     choices: Sequence[T],
     field_type: enum.EnumType | typing._LiteralGenericAlias,  # pyright: ignore [reportAttributeAccessIssue]
     field_name: str,
-    type_: object = _UNSPECIFIED,
+    choice_type: object = _UNSPECIFIED,
     nargs: int | typing.Literal["?", "+", "*"] | None | _Unspecified = _UNSPECIFIED,
 ) -> argparse.Action:
     if len(choices) == 0:
         msg = f"Need at least one choice for field '{field_name}' of type {field_type}"
         raise ValueError(msg)
 
-    if type_ is _UNSPECIFIED:
+    if choice_type is _UNSPECIFIED:
         choice_types = {type(x) for x in choices}
         # We enforce that all choices MUST all be of the same type, so that we can
         # convert them simply and unambiguously (e.g. `Literal[42, "42"]` could cause
@@ -105,18 +105,44 @@ def _add_argument_choices[T](
             )
             raise ValueError(msg)
 
-        (type_,) = choice_types
+        (choice_type,) = choice_types
 
     return _add_argument(
         parser,
         name=name,
-        type_=type_,
+        type_=choice_type,
         choices=choices,
         help_=help_,
         required=required,
         default=default,
         nargs=nargs,
     )
+
+
+def _add_argument_literal(
+    parser: argparse.ArgumentParser,
+    *,
+    name: str,
+    help_: str | None,
+    required: bool,
+    default: object,
+    field_type: typing._LiteralGenericAlias,  # pyright: ignore [reportAttributeAccessIssue]
+    field_name: str,
+    nargs: int | typing.Literal["?", "+", "*"] | None | _Unspecified = _UNSPECIFIED,
+) -> _Unspecified:
+    # Represent literal arguments with choices.
+    _add_argument_choices(
+        parser,
+        name=name,
+        choices=typing.get_args(field_type),
+        help_=help_,
+        required=required,
+        default=default,
+        field_type=field_type,
+        field_name=field_name,
+        nargs=nargs,
+    )
+    return _UNSPECIFIED
 
 
 def _add_argument_enum[T: enum.Enum](
@@ -145,7 +171,7 @@ def _add_argument_enum[T: enum.Enum](
     _add_argument_choices(
         parser,
         name=name,
-        type_=str,
+        choice_type=str,
         choices=enum_element_names,  # Sequence of elements.
         help_=help_,
         required=required,
@@ -243,19 +269,16 @@ def _add_argument_from_field(  # noqa: C901, PLR0911, PLR0912
             #   defaults, so for now we don't try to handle this specially.
 
             if isinstance(element_type, typing._LiteralGenericAlias):  # pyright: ignore [reportAttributeAccessIssue]  # noqa: SLF001
-                # Represent literal arguments with choices.
-                _add_argument_choices(
+                return _add_argument_literal(
                     parser,
                     name=arg_name,
-                    choices=typing.get_args(element_type),
                     help_=help_,
                     required=required,
                     default=default,
-                    field_type=field.type,
+                    field_type=element_type,
                     field_name=field.name,
                     nargs="*",
                 )
-                return _UNSPECIFIED
 
             if isinstance(element_type, enum.EnumType):
                 assert issubclass(element_type, enum.Enum)
@@ -285,18 +308,15 @@ def _add_argument_from_field(  # noqa: C901, PLR0911, PLR0912
         raise ValueError(msg)
 
     if isinstance(base_type, typing._LiteralGenericAlias):  # pyright: ignore [reportAttributeAccessIssue]  # noqa: SLF001
-        # Represent literal arguments with choices.
-        _add_argument_choices(
+        return _add_argument_literal(
             parser,
             name=arg_name,
-            choices=typing.get_args(base_type),
             help_=help_,
             required=required,
             default=default,
-            field_type=field.type,
+            field_type=base_type,
             field_name=field.name,
         )
-        return _UNSPECIFIED
 
     if isinstance(base_type, enum.EnumType):
         assert issubclass(base_type, enum.Enum)
