@@ -22,7 +22,7 @@ requires = ["uv_build"]
 build-backend = "uv_build"
 
 [dependency-groups]
-dev = ["pyright==1.1.403", "pytest>=8.4.1", "ruff==0.12.7"]
+dev = ["pyright[nodejs]==1.1.405", "pytest>=8.4.1", "ruff==0.12.7"]
 
 
 [tool.pyright]
