@@ -314,7 +314,9 @@ def test_list_int() -> None:
     with pytest.raises(argparse.ArgumentError, match="invalid int value: 'three'"):
         assert _parse(_Moo, "--x 1 2 three")
 
-    with pytest.raises(argparse.ArgumentError, match="invalid int value: '3.0'"):
+    with pytest.raises(
+        argparse.ArgumentError, match=re.escape("invalid int value: '3.0'")
+    ):
         assert _parse(_Moo, "--x 1 2 3.0")
 
 
