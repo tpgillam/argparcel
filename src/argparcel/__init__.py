@@ -178,7 +178,7 @@ def _add_argument_enum[T: enum.Enum](
             return _lookup_enum_elements
 
 
-def _add_argument_from_field(  # noqa: C901
+def _add_argument_from_field(  # noqa: C901, PLR0911, PLR0912
     parser: argparse.ArgumentParser,
     field: dataclasses.Field,
     name_to_type: Mapping[str, object],
