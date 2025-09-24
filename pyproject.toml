@@ -25,6 +25,24 @@ build-backend = "uv_build"
 dev = ["pyright==1.1.403", "pytest>=8.4.1", "ruff==0.12.7"]
 
 
+[tool.pyright]
+typeCheckingMode = "strict"
+include = ["src", "tests"]
+reportPrivateUsage = false             # ruff SLF does it better
+# TODO: should we enable some of these?
+reportUnknownArgumentType = false
+reportUnknownMemberType = false
+reportUnknownParameterType = false
+reportUnknownVariableType = false
+# The following are not enabled by default in 'strict' mode, but we want them.
+#   See the table here:
+#   https://microsoft.github.io/pyright/#/configuration?id=diagnostic-settings-defaults
+reportMissingModuleSource = "error"        # By default only 'warning'
+reportPropertyTypeMismatch = true
+reportUninitializedInstanceVariable = true
+reportUnnecessaryTypeIgnoreComment = true
+
+
 [tool.pytest.ini_options]
 addopts = "--tb=short --strict-config"
 testpaths = ["tests"]
