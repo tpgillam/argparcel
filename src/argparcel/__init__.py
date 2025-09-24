@@ -17,8 +17,28 @@ if typing.TYPE_CHECKING:
 __all__ = ["parse", "uses_types"]
 
 
-_LiteralGenericAlias = type(typing.Literal[1])
-_UnionGenericAlias = type(typing.Union[int, bool])  # noqa: UP007
+class _LiteralGenericAliasMeta(type):
+    slots = ("type_",)
+    type_ = type(typing.Literal[1])
+
+    def __instancecheck__(cls, instance: object, /) -> bool:
+        return isinstance(instance, cls.type_)
+
+
+class _LiteralGenericAlias(metaclass=_LiteralGenericAliasMeta):
+    slots = ()
+
+
+class _UnionGenericAliasMeta(type):
+    slots = ("type_",)
+    type_ = type(typing.Union[int, bool])  # noqa: UP007
+
+    def __instancecheck__(cls, instance: object, /) -> bool:
+        return isinstance(instance, cls.type_)
+
+
+class _UnionGenericAlias(metaclass=_UnionGenericAliasMeta):
+    slots = ()
 
 
 def _ensure_field_type(
@@ -28,19 +48,22 @@ def _ensure_field_type(
     | enum.EnumType
     | types.UnionType
     | types.GenericAlias
-    | typing._UnionGenericAlias  # pyright: ignore [reportAttributeAccessIssue]
-    | typing._LiteralGenericAlias  # pyright: ignore [reportAttributeAccessIssue]
+    | _UnionGenericAlias
+    | _LiteralGenericAlias
 ):
-    if type(type_) not in (
-        type,
-        enum.EnumType,
-        types.UnionType,
-        types.GenericAlias,
-        _UnionGenericAlias,
-        _LiteralGenericAlias,
+    if not isinstance(
+        type_,
+        (
+            type,
+            enum.EnumType,
+            types.UnionType,
+            types.GenericAlias,
+            _UnionGenericAlias,
+            _LiteralGenericAlias,
+        ),
     ):
         msg = f"Unsupported type for field '{name}': {type_}  (of type {type(type_)})"
-        raise ValueError(msg)
+        raise TypeError(msg)
     return type_
 
 
@@ -88,7 +111,7 @@ def _add_argument_choices[T](
     required: bool,
     default: T,
     choices: Sequence[T],
-    field_type: enum.EnumType | typing._LiteralGenericAlias,  # pyright: ignore [reportAttributeAccessIssue]
+    field_type: enum.EnumType | _LiteralGenericAlias,
     field_name: str,
     choice_type: object = _UNSPECIFIED,
     nargs: int | typing.Literal["?", "+", "*"] | None | _Unspecified = _UNSPECIFIED,
@@ -130,7 +153,7 @@ def _add_argument_literal(
     help_: str | None,
     required: bool,
     default: object,
-    field_type: typing._LiteralGenericAlias,  # pyright: ignore [reportAttributeAccessIssue]
+    field_type: _LiteralGenericAlias,
     field_name: str,
     nargs: int | typing.Literal["?", "+", "*"] | None | _Unspecified = _UNSPECIFIED,
 ) -> _Unspecified:
