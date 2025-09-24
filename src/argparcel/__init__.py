@@ -36,8 +36,8 @@ def _ensure_field_type(
         enum.EnumType,
         types.UnionType,
         types.GenericAlias,
-        _UnionGenericAlias,  # pyright: ignore [reportAttributeAccessIssue]
-        _LiteralGenericAlias,  # pyright: ignore [reportAttributeAccessIssue]
+        _UnionGenericAlias,
+        _LiteralGenericAlias,
     ):
         msg = f"Unsupported type for field '{name}': {type_}  (of type {type(type_)})"
         raise ValueError(msg)
@@ -58,7 +58,7 @@ def _add_argument(
     help_: str | None,
     required: bool,
     default: object,
-    choices: Sequence | _Unspecified = _UNSPECIFIED,
+    choices: Sequence[typing.Any] | _Unspecified = _UNSPECIFIED,
     type_: object = _UNSPECIFIED,
     action: type[argparse.Action] | _Unspecified = _UNSPECIFIED,
     nargs: int | typing.Literal["?", "+", "*"] | None | _Unspecified = _UNSPECIFIED,
@@ -168,10 +168,7 @@ def _add_argument_enum[T: enum.Enum](
     #
     # Telling argparse about the enum directly is awkward, as discussed in:
     #   https://github.com/tpgillam/argparcel/issues/2
-    enum_element_names: tuple[str, ...] = tuple(
-        x.name  # pyright: ignore[reportAttributeAccessIssue]
-        for x in field_type
-    )
+    enum_element_names: tuple[str, ...] = tuple(x.name for x in field_type)
     _add_argument_choices(
         parser,
         name=name,
@@ -210,7 +207,7 @@ def _add_argument_enum[T: enum.Enum](
 
 def _add_argument_from_field(  # noqa: C901, PLR0911, PLR0912
     parser: argparse.ArgumentParser,
-    field: dataclasses.Field,
+    field: dataclasses.Field[typing.Any],
     name_to_type: Mapping[str, object],
     name_to_help: Mapping[str, str],
 ) -> Callable[[typing.Any], typing.Any] | _Unspecified:
@@ -225,14 +222,8 @@ def _add_argument_from_field(  # noqa: C901, PLR0911, PLR0912
 
     field_type = _ensure_field_type(field.name, name_to_type[field.name])
     help_ = name_to_help.get(field.name)
-    if not (help_ is None or isinstance(help_, str)):
-        msg = f"Unsupported help metadata for field '{field.name}': {help_!r}"
-        raise ValueError(msg)
 
-    if isinstance(
-        field_type,
-        (types.UnionType, _UnionGenericAlias),  # pyright: ignore [reportAttributeAccessIssue]
-    ):
+    if isinstance(field_type, (types.UnionType, _UnionGenericAlias)):
         non_none_types = tuple(
             x for x in typing.get_args(field_type) if x is not types.NoneType
         )
@@ -272,7 +263,7 @@ def _add_argument_from_field(  # noqa: C901, PLR0911, PLR0912
             #   This is currently prevented by dataclasses preventing assigning mutable
             #   defaults, so for now we don't try to handle this specially.
 
-            if isinstance(element_type, _LiteralGenericAlias):  # pyright: ignore [reportAttributeAccessIssue]
+            if isinstance(element_type, _LiteralGenericAlias):
                 return _add_argument_literal(
                     parser,
                     name=arg_name,
@@ -311,7 +302,7 @@ def _add_argument_from_field(  # noqa: C901, PLR0911, PLR0912
         msg = f"Unsupported GenericAlias: {base_type}"
         raise ValueError(msg)
 
-    if isinstance(base_type, _LiteralGenericAlias):  # pyright: ignore [reportAttributeAccessIssue]
+    if isinstance(base_type, _LiteralGenericAlias):
         return _add_argument_literal(
             parser,
             name=arg_name,

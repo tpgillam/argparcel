@@ -275,7 +275,7 @@ def test_unannotated_list() -> None:
     # We can only parse a list if the element type is specified
     @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
     class _Moo:
-        x: list
+        x: list  # pyright: ignore [reportMissingTypeArgument]
 
     with pytest.raises(ValueError, match="`list` must be subscripted"):
         _parse(_Moo, "--x 1")
