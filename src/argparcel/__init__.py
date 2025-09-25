@@ -17,8 +17,42 @@ if typing.TYPE_CHECKING:
 __all__ = ["parse", "uses_types"]
 
 
-_LiteralGenericAlias = type(typing.Literal[1])
-_UnionGenericAlias = type(typing.Union[int, bool])  # noqa: UP007
+def _duck_metaclass(x: object) -> type:
+    """Construct a metaclass for a type that will mimic the type of x.
+
+    Use the returned class as a metaclass, for example:
+
+        class X(metaclass=_meta_duck_type(moo)):
+            slots = ()
+
+    Will construct a type X for which:
+        - runtime isinstance and issubclass checks are based on the runtime type of
+          `moo`
+        - static typecheckers treat X as an opaque, but not "unknown", type
+
+    In practice this is intended to be used for allowing annotation for entities we can
+    obtain whose types are not publicly exposed.
+    """
+
+    class Meta(type):
+        slots = ("type_",)
+        type_ = type(x)
+
+        def __instancecheck__(cls, instance: object, /) -> bool:
+            return isinstance(instance, cls.type_)
+
+        def __subclasscheck__(cls, subclass: type, /) -> bool:
+            return issubclass(subclass, cls.type_)
+
+    return Meta
+
+
+class _LiteralGenericAlias(metaclass=_duck_metaclass(typing.Literal[1])):
+    slots = ()
+
+
+class _UnionGenericAlias(metaclass=_duck_metaclass(typing.Union[int, bool])):  # noqa: UP007
+    slots = ()
 
 
 def _ensure_field_type(
@@ -28,19 +62,22 @@ def _ensure_field_type(
     | enum.EnumType
     | types.UnionType
     | types.GenericAlias
-    | typing._UnionGenericAlias  # pyright: ignore [reportAttributeAccessIssue]
-    | typing._LiteralGenericAlias  # pyright: ignore [reportAttributeAccessIssue]
+    | _UnionGenericAlias
+    | _LiteralGenericAlias
 ):
-    if type(type_) not in (
-        type,
-        enum.EnumType,
-        types.UnionType,
-        types.GenericAlias,
-        _UnionGenericAlias,
-        _LiteralGenericAlias,
+    if not isinstance(
+        type_,
+        (
+            type,
+            enum.EnumType,
+            types.UnionType,
+            types.GenericAlias,
+            _UnionGenericAlias,
+            _LiteralGenericAlias,
+        ),
     ):
         msg = f"Unsupported type for field '{name}': {type_}  (of type {type(type_)})"
-        raise ValueError(msg)
+        raise TypeError(msg)
     return type_
 
 
@@ -88,7 +125,7 @@ def _add_argument_choices[T](
     required: bool,
     default: T,
     choices: Sequence[T],
-    field_type: enum.EnumType | typing._LiteralGenericAlias,  # pyright: ignore [reportAttributeAccessIssue]
+    field_type: enum.EnumType | _LiteralGenericAlias,
     field_name: str,
     choice_type: object = _UNSPECIFIED,
     nargs: int | typing.Literal["?", "+", "*"] | None | _Unspecified = _UNSPECIFIED,
@@ -130,7 +167,7 @@ def _add_argument_literal(
     help_: str | None,
     required: bool,
     default: object,
-    field_type: typing._LiteralGenericAlias,  # pyright: ignore [reportAttributeAccessIssue]
+    field_type: _LiteralGenericAlias,
     field_name: str,
     nargs: int | typing.Literal["?", "+", "*"] | None | _Unspecified = _UNSPECIFIED,
 ) -> _Unspecified:
