@@ -57,6 +57,7 @@ We also support:
 - `Literal` and `Enum`s forcing specific choices
 - conversion to types whose `__init__` accepts a string, e.g. `pathlib.Path`
 - annotated lists, e.g. `list[int]` or `list[pathlib.Path]`
+- annotated homogeneous tuples of known length, e.g. `tuple[int, int]` or `tuple[str, str, str]`
 - 'help' can be provided too
 
 ```python
@@ -97,7 +98,7 @@ if __name__ == "__main__":
 
 ```console
 $ uv run examples/example_1.py --help
-usage: example_1.py [-h] --a {1,2,3} [--b {puffin,lark}] [--c C] [--d [D ...]]
+usage: example_1.py [-h] --a {1,2,3} [--b {puffin,lark}] [--c C] [--d [D ...]] [--e E E]
 
 options:
   -h, --help         show this help message and exit
@@ -105,16 +106,20 @@ options:
   --b {puffin,lark}
   --c C              An important path.
   --d [D ...]
+  --e E E
 
 
 $ uv run examples/example_1.py --a 2
-Args(a=2, b=<Bird.puffin: 1>, c=None, d=None)
+Args(a=2, b=<Bird.puffin: 1>, c=None, d=None, e=None)
 
 $ uv run examples/example_1.py --a 2 --b lark --c /somewhere/to/go
-Args(a=2, b=<Bird.lark: 2>, c=PosixPath('/somewhere/to/go'), d=None)
+Args(a=2, b=<Bird.lark: 2>, c=PosixPath('/somewhere/to/go'), d=None, e=None)
 
 $ uv run examples/example_1.py --a 2 --b lark --d 1.0 2.0 3.0
 Args(a=2, b=<Bird.lark: 2>, c=None, d=[1.0, 2.0, 3.0])
+
+$ uv run examples/example_1.py --a 2 --e 4 5
+Args(a=2, b=<Bird.puffin: 1>, c=None, d=None, e=(4, 5))
 ```
 
 ## Pitfall: forward-references

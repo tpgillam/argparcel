@@ -436,6 +436,21 @@ def test_tuple_int1() -> None:
         _parse(_Moo, "--x 1 2")
 
 
+def test_tuple_int1_none() -> None:
+    @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
+    class _Moo:
+        x: tuple[int] | None = None
+
+    assert _parse(_Moo, "").x is None
+    assert _parse(_Moo, "--x 1").x == (1,)
+
+    with pytest.raises(argparse.ArgumentError, match="expected 1 argument"):
+        _parse(_Moo, "--x")
+
+    with pytest.raises(argparse.ArgumentError, match="unrecognized arguments: 2"):
+        _parse(_Moo, "--x 1 2")
+
+
 def test_tuple_int2() -> None:
     @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
     class _Moo:

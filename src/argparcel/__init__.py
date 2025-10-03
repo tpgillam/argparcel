@@ -247,7 +247,12 @@ def _tuplify(
 ) -> Callable[[typing.Any], typing.Any]:
     """Given a converter, return a new converter that converts the result to a tuple."""
 
-    def f(value: Sequence[typing.Any]) -> tuple[typing.Any, ...]:
+    def f(value: Sequence[typing.Any] | None) -> tuple[typing.Any, ...] | None:
+        if value is None:
+            # 'None' is the value used to represent unspecified arguments, so we should
+            # propagate that.
+            return value
+
         if isinstance(converter, _Unspecified):
             return tuple(value)
         return tuple(converter(value))
