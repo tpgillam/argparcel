@@ -435,6 +435,10 @@ def _add_argument_from_field(  # noqa: C901, PLR0911, PLR0912, PLR0915
         msg = "`list` must be subscripted; please use e.g. 'list[int]'"
         raise ValueError(msg)
 
+    if base_type is tuple:
+        msg = "`tuple` must be subscripted; please use e.g. 'tuple[int, int]'"
+        raise ValueError(msg)
+
     _add_argument(
         parser,
         name=arg_name,
