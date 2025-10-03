@@ -403,6 +403,16 @@ def test_list_literal_heterogeneous() -> None:
         assert _parse(_Moo, "--x")
 
 
+def test_tuple_unannotated() -> None:
+    # We can only parse a tuple if the element types are specified
+    @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
+    class _Moo:
+        x: tuple  # pyright: ignore [reportMissingTypeArgument]
+
+    with pytest.raises(ValueError, match="`tuple` must be subscripted"):
+        _parse(_Moo, "--x 1")
+
+
 def test_tuple_empty() -> None:
     @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
     class _Moo:
