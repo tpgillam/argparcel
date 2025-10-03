@@ -312,12 +312,12 @@ def test_list_int() -> None:
     assert _parse(_Moo, "--x 1 2 --y").x == [1, 2]
 
     with pytest.raises(argparse.ArgumentError, match="invalid int value: 'three'"):
-        assert _parse(_Moo, "--x 1 2 three")
+        _parse(_Moo, "--x 1 2 three")
 
     with pytest.raises(
         argparse.ArgumentError, match=re.escape("invalid int value: '3.0'")
     ):
-        assert _parse(_Moo, "--x 1 2 3.0")
+        _parse(_Moo, "--x 1 2 3.0")
 
 
 def test_list_int_or_none() -> None:
@@ -360,7 +360,7 @@ def test_list_enum() -> None:
         argparse.ArgumentError,
         match=re.escape("argument --x: invalid choice: 'c' (choose from a, b)"),
     ):
-        assert _parse(_Moo, "--x a b c")
+        _parse(_Moo, "--x a b c")
 
     assert """[-h] --x [{a,b} ...]
 
@@ -384,7 +384,7 @@ def test_list_literal() -> None:
         argparse.ArgumentError,
         match=re.escape("argument --x: invalid choice: 'c' (choose from a, b)"),
     ):
-        assert _parse(_Moo, "--x a b c")
+        _parse(_Moo, "--x a b c")
 
     assert """[-h] --x [{a,b} ...]
 
@@ -401,3 +401,75 @@ def test_list_literal_heterogeneous() -> None:
 
     with pytest.raises(ValueError, match="Need exactly one type of choice"):
         assert _parse(_Moo, "--x")
+
+
+def test_tuple_empty() -> None:
+    @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
+    class _Moo:
+        x: tuple[()]
+
+    with pytest.raises(argparse.ArgumentError, match="MOO"):
+        _parse(_Moo, "--x")
+
+
+def test_tuple_int1() -> None:
+    @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
+    class _Moo:
+        x: tuple[int]
+
+    assert _parse(_Moo, "--x 1").x == (1,)
+
+    with pytest.raises(argparse.ArgumentError, match="MOO"):
+        _parse(_Moo, "--x")
+
+    with pytest.raises(argparse.ArgumentError, match="MOO"):
+        _parse(_Moo, "--x 1 2")
+
+
+def test_tuple_int2() -> None:
+    @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
+    class _Moo:
+        x: tuple[int, int]
+
+    assert _parse(_Moo, "--x 1 2").x == (1, 2)
+
+    with pytest.raises(argparse.ArgumentError, match="MOO"):
+        _parse(_Moo, "--x")
+
+    with pytest.raises(argparse.ArgumentError, match="MOO"):
+        _parse(_Moo, "--x 1")
+
+    with pytest.raises(argparse.ArgumentError, match="MOO"):
+        _parse(_Moo, "--x 1 2 3")
+
+
+def test_tuple_int3() -> None:
+    @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
+    class _Moo:
+        x: tuple[int, int, int]
+
+    assert _parse(_Moo, "--x 1 2 3").x == (1, 2, 3)
+
+    with pytest.raises(argparse.ArgumentError, match="MOO"):
+        _parse(_Moo, "--x 1 2 3 4")
+
+
+def test_tuple_intn() -> None:
+    @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
+    class _Moo:
+        x: tuple[int, ...]
+
+    assert _parse(_Moo, "--x").x == ()
+    assert _parse(_Moo, "--x 1").x == (1,)
+    assert _parse(_Moo, "--x 1 2").x == (1, 2)
+    assert _parse(_Moo, "--x 1 2 3").x == (1, 2, 3)
+
+
+def test_tuple_int_at_least_1() -> None:
+    @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
+    class _Moo:
+        x: tuple[int, *tuple[int, ...]]
+
+    # TODO: we might want to support this in the future
+    with pytest.raises(argparse.ArgumentError, match="MOO"):
+        _parse(_Moo, "--x 1 2 3")
