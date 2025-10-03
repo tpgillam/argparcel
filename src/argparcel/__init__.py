@@ -195,7 +195,7 @@ def _add_argument_enum[T: enum.Enum](
     default: T | None | _Unspecified,
     field_type: type[T],
     field_name: str,
-    nargs: typing.Literal["+", "*"] | None | _Unspecified = _UNSPECIFIED,
+    nargs: int | typing.Literal["+", "*"] | None | _Unspecified = _UNSPECIFIED,
 ) -> Callable[[typing.Any], typing.Any]:
     # Enums are a bit awkward. We handle them in two stages:
     #   1. Let argparse treat them as a set of string choices, corresponding to the
@@ -234,7 +234,7 @@ def _add_argument_enum[T: enum.Enum](
 
             return _lookup_enum_element
 
-        case "+" | "*":
+        case int() | "+" | "*":
 
             def _lookup_enum_elements(value: list[str]) -> list[enum.EnumType]:
                 return [getattr(field_type, x) for x in value]
@@ -242,7 +242,20 @@ def _add_argument_enum[T: enum.Enum](
             return _lookup_enum_elements
 
 
-def _add_argument_from_field(  # noqa: C901, PLR0911, PLR0912
+def _tuplify(
+    converter: Callable[[typing.Any], typing.Any] | _Unspecified,
+) -> Callable[[typing.Any], typing.Any]:
+    """Given a converter, return a new converter that converts the result to a tuple."""
+
+    def f(value: Sequence[typing.Any]) -> tuple[typing.Any, ...]:
+        if isinstance(converter, _Unspecified):
+            return tuple(value)
+        return tuple(converter(value))
+
+    return f
+
+
+def _add_argument_from_field(  # noqa: C901, PLR0911, PLR0912, PLR0915
     parser: argparse.ArgumentParser,
     field: dataclasses.Field[typing.Any],
     name_to_type: Mapping[str, object],
@@ -335,6 +348,61 @@ def _add_argument_from_field(  # noqa: C901, PLR0911, PLR0912
                 nargs="*",
             )
             return _UNSPECIFIED
+
+        if origin is tuple:
+            args = typing.get_args(base_type)
+
+            if len(args) == 0:
+                msg = f"Empty tuples not supported: {base_type}"
+                raise ValueError(msg)
+
+            unique_element_types = set(args)
+            if len(unique_element_types) > 1:
+                msg = f"Only homogeneous tuples currently supported, found: {base_type}"
+                raise NotImplementedError(msg)
+
+            (element_type,) = unique_element_types
+            nargs = len(args)
+
+            if isinstance(element_type, _LiteralGenericAlias):
+                return _tuplify(
+                    _add_argument_literal(
+                        parser,
+                        name=arg_name,
+                        help_=help_,
+                        required=required,
+                        default=default,
+                        field_type=element_type,
+                        field_name=field.name,
+                        nargs=nargs,
+                    )
+                )
+
+            if isinstance(element_type, enum.EnumType):
+                assert issubclass(element_type, enum.Enum)
+                return _tuplify(
+                    _add_argument_enum(
+                        parser,
+                        name=arg_name,
+                        help_=help_,
+                        required=required,
+                        default=default,
+                        field_type=element_type,
+                        field_name=field.name,
+                        nargs=nargs,
+                    )
+                )
+
+            _add_argument(
+                parser,
+                name=arg_name,
+                help_=help_,
+                required=required,
+                default=default,
+                type_=element_type,
+                nargs=nargs,
+            )
+            return _tuplify(_UNSPECIFIED)
 
         msg = f"Unsupported GenericAlias: {base_type}"
         raise ValueError(msg)
