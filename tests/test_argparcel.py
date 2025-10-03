@@ -498,3 +498,25 @@ options:
   -h, --help            show this help message and exit
   --x {1,2} {1,2} {1,2}
 """ in _get_help_text(_Moo)
+
+
+def test_tuple_enum2() -> None:
+    @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
+    class _Moo:
+        x: tuple[Thingy, Thingy]
+
+    assert _parse(_Moo, "--x a a").x == (Thingy.a, Thingy.a)
+    assert _parse(_Moo, "--x a b").x == (Thingy.a, Thingy.b)
+
+    with pytest.raises(argparse.ArgumentError, match="unrecognized arguments: c"):
+        _parse(_Moo, "--x a b c")
+
+    with pytest.raises(argparse.ArgumentError, match="invalid choice: 'c'"):
+        _parse(_Moo, "--x a c")
+
+    assert """[-h] --x {a,b} {a,b}
+
+options:
+  -h, --help       show this help message and exit
+  --x {a,b} {a,b}
+""" in _get_help_text(_Moo)
