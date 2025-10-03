@@ -442,6 +442,13 @@ def test_tuple_int2() -> None:
     with pytest.raises(argparse.ArgumentError, match="unrecognized arguments: 3"):
         _parse(_Moo, "--x 1 2 3")
 
+    assert """[-h] --x X X
+
+options:
+  -h, --help  show this help message and exit
+  --x X X
+""" in _get_help_text(_Moo)
+
 
 def test_tuple_int3() -> None:
     @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
