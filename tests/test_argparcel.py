@@ -312,12 +312,12 @@ def test_list_int() -> None:
     assert _parse(_Moo, "--x 1 2 --y").x == [1, 2]
 
     with pytest.raises(argparse.ArgumentError, match="invalid int value: 'three'"):
-        assert _parse(_Moo, "--x 1 2 three")
+        _parse(_Moo, "--x 1 2 three")
 
     with pytest.raises(
         argparse.ArgumentError, match=re.escape("invalid int value: '3.0'")
     ):
-        assert _parse(_Moo, "--x 1 2 3.0")
+        _parse(_Moo, "--x 1 2 3.0")
 
 
 def test_list_int_or_none() -> None:
@@ -360,7 +360,7 @@ def test_list_enum() -> None:
         argparse.ArgumentError,
         match=re.escape("argument --x: invalid choice: 'c' (choose from a, b)"),
     ):
-        assert _parse(_Moo, "--x a b c")
+        _parse(_Moo, "--x a b c")
 
     assert """[-h] --x [{a,b} ...]
 
@@ -384,7 +384,7 @@ def test_list_literal() -> None:
         argparse.ArgumentError,
         match=re.escape("argument --x: invalid choice: 'c' (choose from a, b)"),
     ):
-        assert _parse(_Moo, "--x a b c")
+        _parse(_Moo, "--x a b c")
 
     assert """[-h] --x [{a,b} ...]
 
@@ -401,3 +401,147 @@ def test_list_literal_heterogeneous() -> None:
 
     with pytest.raises(ValueError, match="Need exactly one type of choice"):
         assert _parse(_Moo, "--x")
+
+
+def test_tuple_unannotated() -> None:
+    # We can only parse a tuple if the element types are specified
+    @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
+    class _Moo:
+        x: tuple  # pyright: ignore [reportMissingTypeArgument]
+
+    with pytest.raises(ValueError, match="`tuple` must be subscripted"):
+        _parse(_Moo, "--x 1")
+
+
+def test_tuple_empty() -> None:
+    @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
+    class _Moo:
+        x: tuple[()]
+
+    with pytest.raises(ValueError, match="Empty tuples not supported"):
+        _parse(_Moo, "--x")
+
+
+def test_tuple_int1() -> None:
+    @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
+    class _Moo:
+        x: tuple[int]
+
+    assert _parse(_Moo, "--x 1").x == (1,)
+
+    with pytest.raises(argparse.ArgumentError, match="expected 1 argument"):
+        _parse(_Moo, "--x")
+
+    with pytest.raises(argparse.ArgumentError, match="unrecognized arguments: 2"):
+        _parse(_Moo, "--x 1 2")
+
+
+def test_tuple_int1_none() -> None:
+    @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
+    class _Moo:
+        x: tuple[int] | None = None
+
+    assert _parse(_Moo, "").x is None
+    assert _parse(_Moo, "--x 1").x == (1,)
+
+    with pytest.raises(argparse.ArgumentError, match="expected 1 argument"):
+        _parse(_Moo, "--x")
+
+    with pytest.raises(argparse.ArgumentError, match="unrecognized arguments: 2"):
+        _parse(_Moo, "--x 1 2")
+
+
+def test_tuple_int2() -> None:
+    @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
+    class _Moo:
+        x: tuple[int, int]
+
+    assert _parse(_Moo, "--x 1 2").x == (1, 2)
+
+    with pytest.raises(argparse.ArgumentError, match="expected 2 arguments"):
+        _parse(_Moo, "--x")
+
+    with pytest.raises(argparse.ArgumentError, match="expected 2 arguments"):
+        _parse(_Moo, "--x 1")
+
+    with pytest.raises(argparse.ArgumentError, match="unrecognized arguments: 3"):
+        _parse(_Moo, "--x 1 2 3")
+
+    assert """[-h] --x X X
+
+options:
+  -h, --help  show this help message and exit
+  --x X X
+""" in _get_help_text(_Moo)
+
+
+def test_tuple_int3() -> None:
+    @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
+    class _Moo:
+        x: tuple[int, int, int]
+
+    assert _parse(_Moo, "--x 1 2 3").x == (1, 2, 3)
+
+    with pytest.raises(argparse.ArgumentError, match="unrecognized arguments: 4"):
+        _parse(_Moo, "--x 1 2 3 4")
+
+
+def test_tuple_intn() -> None:
+    @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
+    class _Moo:
+        x: tuple[int, ...]
+
+    with pytest.raises(NotImplementedError, match="Only homogeneous tuples"):
+        _parse(_Moo, "--x")
+
+
+def test_tuple_int_at_least_1() -> None:
+    @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
+    class _Moo:
+        x: tuple[int, *tuple[int, ...]]
+
+    with pytest.raises(NotImplementedError, match="Only homogeneous tuples"):
+        _parse(_Moo, "--x 1 2 3")
+
+
+def test_tuple_lit3() -> None:
+    @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
+    class _Moo:
+        x: tuple[Literal[1, 2], Literal[1, 2], Literal[1, 2]]
+
+    assert _parse(_Moo, "--x 1 2 2").x == (1, 2, 2)
+
+    with pytest.raises(argparse.ArgumentError, match="unrecognized arguments: 4"):
+        _parse(_Moo, "--x 1 2 2 4")
+
+    with pytest.raises(argparse.ArgumentError, match="invalid choice: '3'"):
+        _parse(_Moo, "--x 1 2 3")
+
+    assert """[-h] --x {1,2} {1,2} {1,2}
+
+options:
+  -h, --help            show this help message and exit
+  --x {1,2} {1,2} {1,2}
+""" in _get_help_text(_Moo)
+
+
+def test_tuple_enum2() -> None:
+    @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
+    class _Moo:
+        x: tuple[Thingy, Thingy]
+
+    assert _parse(_Moo, "--x a a").x == (Thingy.a, Thingy.a)
+    assert _parse(_Moo, "--x a b").x == (Thingy.a, Thingy.b)
+
+    with pytest.raises(argparse.ArgumentError, match="unrecognized arguments: c"):
+        _parse(_Moo, "--x a b c")
+
+    with pytest.raises(argparse.ArgumentError, match="invalid choice: 'c'"):
+        _parse(_Moo, "--x a c")
+
+    assert """[-h] --x {a,b} {a,b}
+
+options:
+  -h, --help       show this help message and exit
+  --x {a,b} {a,b}
+""" in _get_help_text(_Moo)

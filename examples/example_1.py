@@ -37,6 +37,9 @@ class Args:
     # A list will introduce a flag that consumes zero or more elements.
     d: list[float] | None = None
 
+    # A tuple will require exactly this many elements to be specified
+    e: tuple[int, int] | None = None
+
 
 if __name__ == "__main__":
     print(argparcel.parse(Args))
