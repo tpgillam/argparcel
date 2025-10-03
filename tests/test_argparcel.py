@@ -477,3 +477,24 @@ def test_tuple_int_at_least_1() -> None:
 
     with pytest.raises(NotImplementedError, match="Only homogeneous tuples"):
         _parse(_Moo, "--x 1 2 3")
+
+
+def test_tuple_lit3() -> None:
+    @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
+    class _Moo:
+        x: tuple[Literal[1, 2], Literal[1, 2], Literal[1, 2]]
+
+    assert _parse(_Moo, "--x 1 2 2").x == (1, 2, 2)
+
+    with pytest.raises(argparse.ArgumentError, match="unrecognized arguments: 4"):
+        _parse(_Moo, "--x 1 2 2 4")
+
+    with pytest.raises(argparse.ArgumentError, match="invalid choice: '3'"):
+        _parse(_Moo, "--x 1 2 3")
+
+    assert """[-h] --x {1,2} {1,2} {1,2}
+
+options:
+  -h, --help            show this help message and exit
+  --x {1,2} {1,2} {1,2}
+""" in _get_help_text(_Moo)
