@@ -55,6 +55,10 @@ class _UnionGenericAlias(metaclass=_duck_metaclass(typing.Union[int, bool])):  #
     slots = ()
 
 
+class _UnpackGenericAlias(metaclass=_duck_metaclass(typing.Unpack[tuple[int, ...]])):
+    slots = ()
+
+
 def _ensure_field_type(
     name: str, type_: object
 ) -> (
@@ -362,9 +366,43 @@ def _add_argument_from_field(  # noqa: C901, PLR0911, PLR0912, PLR0915
                 raise ValueError(msg)
 
             if len(args) == 2 and isinstance(args[1], types.EllipsisType):
-                # Variable-length tuple.
+                # Variable-length tuple, e.g. tuple[int, ...]
                 element_type = args[0]
                 nargs = "*"
+
+            elif isinstance(args[-1], _UnpackGenericAlias):
+                # Variable-length tuple with at least N elements,
+                #   e.g.: tuple[int, *tuple[int, ...]]
+                # We only support a limited number of constructs here.
+                *args_enforced, arg_unpack = args
+
+                # TODO: This code is a bit fragile in its handling of unhappy paths.
+                unpack_args = typing.get_args(arg_unpack)
+                assert len(unpack_args) == 1
+                assert isinstance(unpack_args[0], types.GenericAlias)
+                assert typing.get_origin(unpack_args[0]) is tuple
+                unpack_tuple_args = typing.get_args(unpack_args[0])
+
+                if len(unpack_tuple_args) != 2 or not isinstance(
+                    unpack_tuple_args[1], types.EllipsisType
+                ):
+                    msg = f"Unsupported Unpack: {arg_unpack}"
+                    raise ValueError(msg)
+                unpack_type = unpack_tuple_args[0]
+
+                if len(args_enforced) > 1:
+                    msg = f"Currently only '>=1' supported, not {base_type}"
+                    raise NotImplementedError(msg)
+                (arg_enforced,) = args_enforced
+                if unpack_type != arg_enforced:
+                    msg = (
+                        "Only homogeneous tuples currently supported, "
+                        f"found: {base_type}"
+                    )
+                    raise NotImplementedError(msg)
+
+                element_type = unpack_type
+                nargs = "+"
 
             else:
                 unique_element_types = set(args)

@@ -512,8 +512,30 @@ def test_tuple_int_at_least_1() -> None:
     class _Moo:
         x: tuple[int, *tuple[int, ...]]
 
-    with pytest.raises(NotImplementedError, match="Only homogeneous tuples"):
-        _parse(_Moo, "--x 1 2 3")
+    assert _parse(_Moo, "--x 1").x == (1,)
+    assert _parse(_Moo, "--x 1 2").x == (1, 2)
+    assert _parse(_Moo, "--x 1 2 3").x == (1, 2, 3)
+
+    with pytest.raises(argparse.ArgumentError, match="expected at least one argument"):
+        _parse(_Moo, "--x")
+    with pytest.raises(argparse.ArgumentError, match="invalid int value: 'c'"):
+        _parse(_Moo, "--x 1 2 c")
+
+    assert """[-h] --x X [X ...]
+
+options:
+  -h, --help     show this help message and exit
+  --x X [X ...]
+""" in _get_help_text(_Moo)
+
+
+def test_tuple_int_at_least_2() -> None:
+    @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
+    class _Moo:
+        x: tuple[int, int, *tuple[int, ...]]
+
+    with pytest.raises(NotImplementedError, match="Currently only '>=1' supported"):
+        _parse(_Moo, "--x 1 2")
 
 
 def test_tuple_lit3() -> None:
