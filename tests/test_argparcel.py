@@ -491,8 +491,20 @@ def test_tuple_intn() -> None:
     class _Moo:
         x: tuple[int, ...]
 
-    with pytest.raises(NotImplementedError, match="Only homogeneous tuples"):
-        _parse(_Moo, "--x")
+    assert _parse(_Moo, "--x").x == ()
+    assert _parse(_Moo, "--x 1").x == (1,)
+    assert _parse(_Moo, "--x 1 2").x == (1, 2)
+    assert _parse(_Moo, "--x 1 2 3").x == (1, 2, 3)
+
+    with pytest.raises(argparse.ArgumentError, match="invalid int value: 'c'"):
+        _parse(_Moo, "--x 1 2 c")
+
+    assert """[-h] --x [X ...]
+
+options:
+  -h, --help   show this help message and exit
+  --x [X ...]
+""" in _get_help_text(_Moo)
 
 
 def test_tuple_int_at_least_1() -> None:

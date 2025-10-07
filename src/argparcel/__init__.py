@@ -361,13 +361,22 @@ def _add_argument_from_field(  # noqa: C901, PLR0911, PLR0912, PLR0915
                 msg = f"Empty tuples not supported: {base_type}"
                 raise ValueError(msg)
 
-            unique_element_types = set(args)
-            if len(unique_element_types) > 1:
-                msg = f"Only homogeneous tuples currently supported, found: {base_type}"
-                raise NotImplementedError(msg)
+            if len(args) == 2 and isinstance(args[1], types.EllipsisType):
+                # Variable-length tuple.
+                element_type = args[0]
+                nargs = "*"
 
-            (element_type,) = unique_element_types
-            nargs = len(args)
+            else:
+                unique_element_types = set(args)
+                if len(unique_element_types) > 1:
+                    msg = (
+                        "Only homogeneous tuples currently supported, "
+                        f"found: {base_type}"
+                    )
+                    raise NotImplementedError(msg)
+
+                (element_type,) = unique_element_types
+                nargs = len(args)
 
             if isinstance(element_type, _LiteralGenericAlias):
                 return _tuplify(
