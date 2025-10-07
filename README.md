@@ -57,7 +57,7 @@ We also support:
 - `Literal` and `Enum`s forcing specific choices
 - conversion to types whose `__init__` accepts a string, e.g. `pathlib.Path`
 - annotated lists, e.g. `list[int]` or `list[pathlib.Path]`
-- annotated homogeneous tuples of known length, e.g. `tuple[int, int]` or `tuple[str, str, str]`
+- annotated homogeneous tuples, e.g. `tuple[int, int]` or `tuple[str, ...]`
 - 'help' can be provided too
 
 ```python
