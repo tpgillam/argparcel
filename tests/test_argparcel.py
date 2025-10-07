@@ -537,6 +537,19 @@ options:
 """ in _get_help_text(_Moo)
 
 
+def test_tuple_litn() -> None:
+    @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
+    class _Moo:
+        x: tuple[Literal[1, 2], ...]
+
+    assert _parse(_Moo, "--x").x == ()
+    assert _parse(_Moo, "--x 1").x == (1,)
+    assert _parse(_Moo, "--x 1 2 2").x == (1, 2, 2)
+
+    with pytest.raises(argparse.ArgumentError, match="invalid choice: '3'"):
+        _parse(_Moo, "--x 1 2 3")
+
+
 def test_tuple_enum2() -> None:
     @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
     class _Moo:
