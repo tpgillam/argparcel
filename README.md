@@ -91,6 +91,15 @@ class Args:
     # A list will introduce a flag that consumes zero or more elements.
     d: list[float] | None = None
 
+    # A tuple can require exactly a certain number of elements to be specified.
+    e: tuple[int, int] | None = None
+
+    # A tuple can also have an unknown number of elements.
+    f: tuple[str, ...] | None = None
+
+    # A tuple can also be required to have one or more elements.
+    g: tuple[float, *tuple[float, ...]] | None = None
+
 
 if __name__ == "__main__":
     print(argparcel.parse(Args))
