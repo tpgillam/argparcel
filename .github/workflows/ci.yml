@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python: [312, 313]
+        python: [312, 313, 314]
     steps:
       - uses: actions/checkout@v5
       - uses: astral-sh/setup-uv@v6
