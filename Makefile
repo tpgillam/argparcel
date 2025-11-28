@@ -10,6 +10,7 @@ clean:
 .PHONY: typecheck
 typecheck:
 	uv run pyright
+	uv run ty check
 
 .PHONY: lint
 lint:
