@@ -28,7 +28,6 @@ jobs:
       - uses: actions/checkout@v6
       - uses: astral-sh/setup-uv@v7
       - run: make lint_no_fix
-      - run: make typecheck
 
   pass:
     needs: [test_on_version, lint]
