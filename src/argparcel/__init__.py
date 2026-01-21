@@ -68,6 +68,7 @@ def _ensure_field_type(
     | types.GenericAlias
     | _UnionGenericAlias
     | _LiteralGenericAlias
+    | typing.TypeAliasType
 ):
     if not isinstance(
         type_,
@@ -78,6 +79,7 @@ def _ensure_field_type(
             types.GenericAlias,
             _UnionGenericAlias,
             _LiteralGenericAlias,
+            typing.TypeAliasType,
         ),
     ):
         msg = f"Unsupported type for field '{name}': {type_}  (of type {type(type_)})"
@@ -297,6 +299,10 @@ def _add_argument_from_field(  # noqa: C901, PLR0911, PLR0912, PLR0915
         base_type = field_type
 
     default = _UNSPECIFIED if required else field.default
+
+    # If we have a type alias, transparently look through it
+    if isinstance(base_type, typing.TypeAliasType):
+        base_type = base_type.__value__
 
     if base_type is bool:
         # Represent boolean arguments as 'flags'
