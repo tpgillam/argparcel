@@ -592,3 +592,17 @@ options:
   -h, --help       show this help message and exit
   --x {a,b} {a,b}
 """ in _get_help_text(_Moo)
+
+
+type _AliasLiteral = Literal[1, 2, 4]
+
+
+def test_type_alias() -> None:
+    @dataclasses.dataclass(frozen=True, slots=True)
+    class _Moo:
+        x: _AliasLiteral
+
+    assert _parse(_Moo, "--x 1") == _Moo(1)
+    assert _parse(_Moo, "--x 2") == _Moo(2)
+    with pytest.raises(argparse.ArgumentError, match="invalid choice: '3'"):
+        _parse(_Moo, "--x 3")
