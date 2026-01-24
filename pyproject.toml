@@ -1,6 +1,6 @@
 [project]
 name = "argparcel"
-version = "0.0.7"
+version = "0.0.8"
 description = "Parse command-line arguments into a dataclass"
 license = "MIT"
 readme = "README.md"
@@ -23,7 +23,7 @@ requires = ["uv_build"]
 build-backend = "uv_build"
 
 [dependency-groups]
-dev = ["pytest>=9.0.2", "ruff==0.14.13", "ty==0.0.13"]
+dev = ["pytest>=9.0.2", "ruff==0.14.14", "ty==0.0.13"]
 
 
 [tool.pytest.ini_options]
