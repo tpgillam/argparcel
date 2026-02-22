@@ -23,7 +23,7 @@ requires = ["uv_build"]
 build-backend = "uv_build"
 
 [dependency-groups]
-dev = ["pytest>=9.0.2", "ruff==0.14.14", "ty==0.0.13"]
+dev = ["pytest>=9.0.2", "ruff==0.15.2", "ty==0.0.18"]
 
 
 [tool.pytest.ini_options]
@@ -88,23 +88,7 @@ split-on-trailing-comma = false
 ]
 
 [tool.ty.rules]
-# Enable all rules that currently exist, and whose default level isn't 'error'.
-# TODO: when available, we want to enable 'ALL' without enumerating explicitly.
-#   https://github.com/astral-sh/ty/issues/174
-deprecated = "error"
-ignore-comment-unknown-rule = "error"
-invalid-ignore-comment = "error"
-possibly-missing-attribute = "error"
-possibly-missing-implicit-call = "error"
-possibly-missing-import = "error"
-redundant-cast = "error"
-undefined-reveal = "error"
-unresolved-global = "error"
-unsupported-base = "error"
-useless-overload-body = "error"
-division-by-zero = "error"
-possibly-unresolved-reference = "error"
-unused-ignore-comment = "error"
+all = "error"
 
 [tool.uv]
 python-preference = "only-managed"
