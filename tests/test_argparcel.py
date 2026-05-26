@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     import _typeshed
 
 
-def _choices_msg(invalid: str, choices: tuple[str, ...], *, arg: str) -> str:
+def _choices_msg(arg: str, invalid: str, choices: tuple[str, ...]) -> str:
     if sys.version_info >= (3, 14, 1):
         # argparse started quoting individual choices in 3.14.1
         rendered = ", ".join(f"'{c}'" for c in choices)
@@ -94,7 +94,7 @@ def test_literals() -> None:
 
     with pytest.raises(
         argparse.ArgumentError,
-        match=re.escape(_choices_msg("moo", ("foo", "bar"), arg="--choice")),
+        match=re.escape(_choices_msg("--choice", "moo", ("foo", "bar"))),
     ):
         _parse(MooLiteral, "--choice moo")
 
@@ -366,7 +366,7 @@ def test_list_enum() -> None:
 
     with pytest.raises(
         argparse.ArgumentError,
-        match=re.escape(_choices_msg("c", ("a", "b"), arg="--x")),
+        match=re.escape(_choices_msg("--x", "c", ("a", "b"))),
     ):
         _parse(_Moo, "--x a b c")
 
@@ -390,7 +390,7 @@ def test_list_literal() -> None:
 
     with pytest.raises(
         argparse.ArgumentError,
-        match=re.escape(_choices_msg("c", ("a", "b"), arg="--x")),
+        match=re.escape(_choices_msg("--x", "c", ("a", "b"))),
     ):
         _parse(_Moo, "--x a b c")
 
