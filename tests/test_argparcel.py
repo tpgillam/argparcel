@@ -365,8 +365,7 @@ def test_list_enum() -> None:
     assert _parse(_Moo, "--x a b a").x == [Thingy.a, Thingy.b, Thingy.a]
 
     with pytest.raises(
-        argparse.ArgumentError,
-        match=re.escape(_choices_msg("--x", "c", ("a", "b"))),
+        argparse.ArgumentError, match=re.escape(_choices_msg("--x", "c", ("a", "b")))
     ):
         _parse(_Moo, "--x a b c")
 
@@ -389,8 +388,7 @@ def test_list_literal() -> None:
     assert _parse(_Moo, "--x a b a").x == ["a", "b", "a"]
 
     with pytest.raises(
-        argparse.ArgumentError,
-        match=re.escape(_choices_msg("--x", "c", ("a", "b"))),
+        argparse.ArgumentError, match=re.escape(_choices_msg("--x", "c", ("a", "b")))
     ):
         _parse(_Moo, "--x a b c")
 
