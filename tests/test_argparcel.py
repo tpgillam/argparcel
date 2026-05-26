@@ -7,6 +7,7 @@ import enum
 import io
 import pathlib
 import re
+import sys
 from typing import TYPE_CHECKING, Literal
 
 import pytest
@@ -15,6 +16,15 @@ import argparcel
 
 if TYPE_CHECKING:
     import _typeshed
+
+
+def _choices_msg(arg: str, invalid: str, choices: tuple[str, ...]) -> str:
+    if sys.version_info >= (3, 14, 1):
+        # argparse started quoting individual choices in 3.14.1
+        rendered = ", ".join(f"'{c}'" for c in choices)
+    else:
+        rendered = ", ".join(choices)
+    return f"argument {arg}: invalid choice: '{invalid}' (choose from {rendered})"
 
 
 @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
@@ -84,9 +94,7 @@ def test_literals() -> None:
 
     with pytest.raises(
         argparse.ArgumentError,
-        match=re.escape(
-            "argument --choice: invalid choice: 'moo' (choose from foo, bar)"
-        ),
+        match=re.escape(_choices_msg("--choice", "moo", ("foo", "bar"))),
     ):
         _parse(MooLiteral, "--choice moo")
 
@@ -357,8 +365,7 @@ def test_list_enum() -> None:
     assert _parse(_Moo, "--x a b a").x == [Thingy.a, Thingy.b, Thingy.a]
 
     with pytest.raises(
-        argparse.ArgumentError,
-        match=re.escape("argument --x: invalid choice: 'c' (choose from a, b)"),
+        argparse.ArgumentError, match=re.escape(_choices_msg("--x", "c", ("a", "b")))
     ):
         _parse(_Moo, "--x a b c")
 
@@ -381,8 +388,7 @@ def test_list_literal() -> None:
     assert _parse(_Moo, "--x a b a").x == ["a", "b", "a"]
 
     with pytest.raises(
-        argparse.ArgumentError,
-        match=re.escape("argument --x: invalid choice: 'c' (choose from a, b)"),
+        argparse.ArgumentError, match=re.escape(_choices_msg("--x", "c", ("a", "b")))
     ):
         _parse(_Moo, "--x a b c")
 
