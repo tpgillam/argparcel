@@ -7,7 +7,6 @@ import enum
 import io
 import pathlib
 import re
-import sys
 from typing import TYPE_CHECKING, Literal
 
 import pytest
@@ -18,13 +17,13 @@ if TYPE_CHECKING:
     import _typeshed
 
 
-def _choices_msg(arg: str, invalid: str, choices: tuple[str, ...]) -> str:
-    if sys.version_info >= (3, 14, 1):
-        # argparse started quoting individual choices in 3.14.1
-        rendered = ", ".join(f"'{c}'" for c in choices)
-    else:
-        rendered = ", ".join(choices)
-    return f"argument {arg}: invalid choice: '{invalid}' (choose from {rendered})"
+def _choices_msg[T: (int, str)](arg: str, invalid: T, choices: tuple[T, ...]) -> str:
+    # Different python versions render the exception message differently, due to
+    # different choices of quoting. Be flexible.
+    choices_ = ", ".join(rf"'?{c}'?" for c in choices)
+    return (
+        rf"argument --{arg}: invalid choice: '?{invalid}'? \(choose from {choices_}\)"
+    )
 
 
 @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
@@ -93,8 +92,7 @@ def test_literals() -> None:
     ) == MooLiteral(optional_choice=1, choice="foo", defaulted_choice="a")
 
     with pytest.raises(
-        argparse.ArgumentError,
-        match=re.escape(_choices_msg("--choice", "moo", ("foo", "bar"))),
+        argparse.ArgumentError, match=_choices_msg("choice", "moo", ("foo", "bar"))
     ):
         _parse(MooLiteral, "--choice moo")
 
@@ -365,7 +363,7 @@ def test_list_enum() -> None:
     assert _parse(_Moo, "--x a b a").x == [Thingy.a, Thingy.b, Thingy.a]
 
     with pytest.raises(
-        argparse.ArgumentError, match=re.escape(_choices_msg("--x", "c", ("a", "b")))
+        argparse.ArgumentError, match=_choices_msg("x", "c", ("a", "b"))
     ):
         _parse(_Moo, "--x a b c")
 
@@ -388,7 +386,7 @@ def test_list_literal() -> None:
     assert _parse(_Moo, "--x a b a").x == ["a", "b", "a"]
 
     with pytest.raises(
-        argparse.ArgumentError, match=re.escape(_choices_msg("--x", "c", ("a", "b")))
+        argparse.ArgumentError, match=_choices_msg("x", "c", ("a", "b"))
     ):
         _parse(_Moo, "--x a b c")
 
@@ -554,7 +552,7 @@ def test_tuple_lit3() -> None:
     with pytest.raises(argparse.ArgumentError, match="unrecognized arguments: 4"):
         _parse(_Moo, "--x 1 2 2 4")
 
-    with pytest.raises(argparse.ArgumentError, match="invalid choice: '3'"):
+    with pytest.raises(argparse.ArgumentError, match=_choices_msg("x", 3, (1, 2))):
         _parse(_Moo, "--x 1 2 3")
 
     assert """[-h] --x {1,2} {1,2} {1,2}
@@ -574,7 +572,7 @@ def test_tuple_litn() -> None:
     assert _parse(_Moo, "--x 1").x == (1,)
     assert _parse(_Moo, "--x 1 2 2").x == (1, 2, 2)
 
-    with pytest.raises(argparse.ArgumentError, match="invalid choice: '3'"):
+    with pytest.raises(argparse.ArgumentError, match=_choices_msg("x", 3, (1, 2))):
         _parse(_Moo, "--x 1 2 3")
 
 
@@ -589,7 +587,9 @@ def test_tuple_enum2() -> None:
     with pytest.raises(argparse.ArgumentError, match="unrecognized arguments: c"):
         _parse(_Moo, "--x a b c")
 
-    with pytest.raises(argparse.ArgumentError, match="invalid choice: 'c'"):
+    with pytest.raises(
+        argparse.ArgumentError, match=_choices_msg("x", "c", ("a", "b"))
+    ):
         _parse(_Moo, "--x a c")
 
     assert """[-h] --x {a,b} {a,b}
@@ -610,5 +610,5 @@ def test_type_alias() -> None:
 
     assert _parse(_Moo, "--x 1") == _Moo(1)
     assert _parse(_Moo, "--x 2") == _Moo(2)
-    with pytest.raises(argparse.ArgumentError, match="invalid choice: '3'"):
+    with pytest.raises(argparse.ArgumentError, match=_choices_msg("x", 3, (1, 2, 4))):
         _parse(_Moo, "--x 3")
