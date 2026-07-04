@@ -38,9 +38,11 @@ def _duck_metaclass(x: object) -> type:
         slots = ("type_",)
         type_ = type(x)
 
+        @typing.override
         def __instancecheck__(cls, instance: object, /) -> bool:
             return isinstance(instance, cls.type_)
 
+        @typing.override
         def __subclasscheck__(cls, subclass: type, /) -> bool:
             return issubclass(subclass, cls.type_)
 
