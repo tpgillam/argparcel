@@ -283,7 +283,7 @@ def test_unannotated_list() -> None:
     # We can only parse a list if the element type is specified
     @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
     class _Moo:
-        x: list  # pyright: ignore [reportMissingTypeArgument]
+        x: list  # ty:ignore[missing-type-argument]
 
     with pytest.raises(ValueError, match="`list` must be subscripted"):
         _parse(_Moo, "--x 1")
@@ -413,7 +413,7 @@ def test_tuple_unannotated() -> None:
     # We can only parse a tuple if the element types are specified
     @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
     class _Moo:
-        x: tuple  # pyright: ignore [reportMissingTypeArgument]
+        x: tuple  # ty:ignore[missing-type-argument]
 
     with pytest.raises(ValueError, match="`tuple` must be subscripted"):
         _parse(_Moo, "--x 1")
