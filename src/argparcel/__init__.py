@@ -106,7 +106,7 @@ def _add_argument(
     choices: Sequence[typing.Any] | _Unspecified = _UNSPECIFIED,
     type_: object = _UNSPECIFIED,
     action: type[argparse.Action] | _Unspecified = _UNSPECIFIED,
-    nargs: int | typing.Literal["?", "+", "*"] | None | _Unspecified = _UNSPECIFIED,
+    nargs: int | typing.Literal["?", "+", "*"] | _Unspecified | None = _UNSPECIFIED,
 ) -> argparse.Action:
     # Build up common arguments for `parser.add_argument` into this dictionary. This is
     # the easiest way for us to avoid passing in arguments that should be unspecified.
@@ -136,7 +136,7 @@ def _add_argument_choices[T](
     field_type: enum.EnumType | _LiteralGenericAlias,
     field_name: str,
     choice_type: object = _UNSPECIFIED,
-    nargs: int | typing.Literal["?", "+", "*"] | None | _Unspecified = _UNSPECIFIED,
+    nargs: int | typing.Literal["?", "+", "*"] | _Unspecified | None = _UNSPECIFIED,
 ) -> argparse.Action:
     if len(choices) == 0:
         msg = f"Need at least one choice for field '{field_name}' of type {field_type}"
@@ -177,7 +177,7 @@ def _add_argument_literal(
     default: object,
     field_type: _LiteralGenericAlias,
     field_name: str,
-    nargs: int | typing.Literal["?", "+", "*"] | None | _Unspecified = _UNSPECIFIED,
+    nargs: int | typing.Literal["?", "+", "*"] | _Unspecified | None = _UNSPECIFIED,
 ) -> _Unspecified:
     # Represent literal arguments with choices.
     _add_argument_choices(
@@ -200,10 +200,10 @@ def _add_argument_enum[T: enum.Enum](
     name: str,
     help_: str | None,
     required: bool,
-    default: T | None | _Unspecified,
+    default: T | _Unspecified | None,
     field_type: type[T],
     field_name: str,
-    nargs: int | typing.Literal["+", "*"] | None | _Unspecified = _UNSPECIFIED,
+    nargs: int | typing.Literal["+", "*"] | _Unspecified | None = _UNSPECIFIED,
 ) -> Callable[[typing.Any], typing.Any]:
     # Enums are a bit awkward. We handle them in two stages:
     #   1. Let argparse treat them as a set of string choices, corresponding to the
@@ -326,6 +326,11 @@ def _add_argument_from_field(  # noqa: C901, PLR0911, PLR0912, PLR0915
                 msg = f"Malformed list: {base_type}"
                 raise ValueError(msg)
             (element_type,) = args
+
+            if isinstance(element_type, typing.TypeAliasType):
+                # If we have a type alias, transparently look through it
+                element_type = element_type.__value__
+
             # NOTE: providing a list-as-default here would be bad because mutable.
             #   This is currently prevented by dataclasses preventing assigning mutable
             #   defaults, so for now we don't try to handle this specially.
@@ -423,6 +428,10 @@ def _add_argument_from_field(  # noqa: C901, PLR0911, PLR0912, PLR0915
 
                 (element_type,) = unique_element_types
                 nargs = len(args)
+
+            if isinstance(element_type, typing.TypeAliasType):
+                # If we have a type alias, transparently look through it
+                element_type = element_type.__value__
 
             if isinstance(element_type, _LiteralGenericAlias):
                 return _tuplify(

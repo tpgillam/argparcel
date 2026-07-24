@@ -1,6 +1,6 @@
 [project]
 name = "argparcel"
-version = "0.0.8"
+version = "0.0.9"
 description = "Parse command-line arguments into a dataclass"
 license = "MIT"
 readme = "README.md"
@@ -23,7 +23,7 @@ requires = ["uv_build"]
 build-backend = "uv_build"
 
 [dependency-groups]
-dev = ["pytest>=9.1.1", "ruff==0.15.20", "ty==0.0.56"]
+dev = ["pytest>=9.1.1", "ruff==0.16.0", "ty==0.0.63"]
 
 
 [tool.pytest.ini_options]
@@ -45,6 +45,9 @@ select = ["ALL"]
 ignore = [
     # flake8-commas
     "COM812", # we are warned that this conflicts with the formatter
+
+    # flake8-copyright
+    "CPY001", # We don't want a copyright notice on every file.
 
     # flake8-fixme
     "FIX", # We don't mind having fix-mes in our code
