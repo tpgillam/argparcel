@@ -624,3 +624,15 @@ def test_type_alias_tuple() -> None:
     assert _parse(_Moo, "--x 2 4") == _Moo((2, 4))
     with pytest.raises(argparse.ArgumentError, match=_choices_msg("x", 3, (1, 2, 4))):
         _parse(_Moo, "--x 3")
+
+
+def test_type_alias_list() -> None:
+    @dataclasses.dataclass(frozen=True, slots=True)
+    class _Moo:
+        x: list[_AliasLiteral]
+
+    assert _parse(_Moo, "--x") == _Moo([])
+    assert _parse(_Moo, "--x 1") == _Moo([1])
+    assert _parse(_Moo, "--x 2 4") == _Moo([2, 4])
+    with pytest.raises(argparse.ArgumentError, match=_choices_msg("x", 3, (1, 2, 4))):
+        _parse(_Moo, "--x 3")

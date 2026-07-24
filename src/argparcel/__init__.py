@@ -326,6 +326,11 @@ def _add_argument_from_field(  # noqa: C901, PLR0911, PLR0912, PLR0915
                 msg = f"Malformed list: {base_type}"
                 raise ValueError(msg)
             (element_type,) = args
+
+            if isinstance(element_type, typing.TypeAliasType):
+                # If we have a type alias, transparently look through it
+                element_type = element_type.__value__
+
             # NOTE: providing a list-as-default here would be bad because mutable.
             #   This is currently prevented by dataclasses preventing assigning mutable
             #   defaults, so for now we don't try to handle this specially.
@@ -423,6 +428,10 @@ def _add_argument_from_field(  # noqa: C901, PLR0911, PLR0912, PLR0915
 
                 (element_type,) = unique_element_types
                 nargs = len(args)
+
+            if isinstance(element_type, typing.TypeAliasType):
+                # If we have a type alias, transparently look through it
+                element_type = element_type.__value__
 
             if isinstance(element_type, _LiteralGenericAlias):
                 return _tuplify(
