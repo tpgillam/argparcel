@@ -64,7 +64,7 @@ We also support:
 # examples/example_1.py
 import dataclasses
 import enum
-import pathlib 
+import pathlib
 from typing import Literal
 
 import argparcel
