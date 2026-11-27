@@ -19,8 +19,7 @@ if TYPE_CHECKING:
 
 def _choices_msg[T: (int, str)](arg: str, invalid: T, choices: tuple[T, ...]) -> str:
     # Different python versions render the exception message differently, due to
-    # different choices of quoting. Be flexible. From Python 3.15, a close match is
-    # also suggested, e.g. "invalid choice: 'moo', maybe you meant 'foo'? (choose ...".
+    # different choices of quoting. Be flexible.
     choices_ = ", ".join(rf"'?{c}'?" for c in choices)
     return (
         rf"argument --{arg}: invalid choice: '?{invalid}'?(, maybe you meant .*\?)? "
