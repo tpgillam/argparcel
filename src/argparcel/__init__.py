@@ -383,14 +383,20 @@ def _add_argument_from_field(  # noqa: C901, PLR0911, PLR0912, PLR0915
                 element_type = args[0]
                 nargs = "*"
 
-            elif isinstance(args[-1], _UnpackGenericAlias):
+            elif isinstance(args[-1], _UnpackGenericAlias) or (
+                isinstance(args[-1], types.GenericAlias) and args[-1].__unpacked__
+            ):
                 # Variable-length tuple with at least N elements,
                 #   e.g.: tuple[int, *tuple[int, ...]]
                 # We only support a limited number of constructs here.
                 *args_enforced, arg_unpack = args
 
                 # TODO: This code is a bit fragile in its handling of unhappy paths.
-                unpack_args = typing.get_args(arg_unpack)
+                unpack_args = (
+                    (arg_unpack,)
+                    if isinstance(arg_unpack, types.GenericAlias)
+                    else typing.get_args(arg_unpack)
+                )
                 assert len(unpack_args) == 1
                 assert isinstance(unpack_args[0], types.GenericAlias)
                 assert typing.get_origin(unpack_args[0]) is tuple

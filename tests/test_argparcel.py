@@ -7,7 +7,7 @@ import enum
 import io
 import pathlib
 import re
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Literal, Unpack
 
 import pytest
 
@@ -22,7 +22,8 @@ def _choices_msg[T: (int, str)](arg: str, invalid: T, choices: tuple[T, ...]) ->
     # different choices of quoting. Be flexible.
     choices_ = ", ".join(rf"'?{c}'?" for c in choices)
     return (
-        rf"argument --{arg}: invalid choice: '?{invalid}'? \(choose from {choices_}\)"
+        rf"argument --{arg}: invalid choice: '?{invalid}'?(, maybe you meant .*\?)? "
+        rf"\(choose from {choices_}\)"
     )
 
 
@@ -531,6 +532,18 @@ options:
   -h, --help     show this help message and exit
   --x X [X ...]
 """ in _get_help_text(_Moo)
+
+
+def test_tuple_int_at_least_1_typing_unpack() -> None:
+    @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
+    class _Moo:
+        x: tuple[int, Unpack[tuple[int, ...]]]  # noqa: UP044
+
+    assert _parse(_Moo, "--x 1").x == (1,)
+    assert _parse(_Moo, "--x 1 2 3").x == (1, 2, 3)
+
+    with pytest.raises(argparse.ArgumentError, match="expected at least one argument"):
+        _parse(_Moo, "--x")
 
 
 def test_tuple_int_at_least_2() -> None:
