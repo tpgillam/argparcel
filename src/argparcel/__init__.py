@@ -392,8 +392,6 @@ def _add_argument_from_field(  # noqa: C901, PLR0911, PLR0912, PLR0915
                 *args_enforced, arg_unpack = args
 
                 # TODO: This code is a bit fragile in its handling of unhappy paths.
-                # From Python 3.15, `*tuple[int, ...]` is a `types.GenericAlias` with
-                #   `__unpacked__` set, rather than a `typing.Unpack[tuple[int, ...]]`.
                 unpack_args = (
                     (arg_unpack,)
                     if isinstance(arg_unpack, types.GenericAlias)
